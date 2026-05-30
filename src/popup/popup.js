@@ -1,5 +1,6 @@
 // popup.js - 弹出窗口交互逻辑
 import './popup.css';
+import { initLocale, t, applyTranslations } from '../locales/index.js';
 
 /**
  * 弹出窗口控制器
@@ -19,10 +20,15 @@ class PopupController {
   /**
    * 初始化
    */
-  init() {
+  async init() {
+    // 初始化语言
+    initLocale();
+    applyTranslations();
+
     this.bindElements();
-    this.loadConfig();
+    await this.loadConfig();
     this.setupEventListeners();
+    this.updateCurrencyOptions();
   }
 
   /**
@@ -41,6 +47,25 @@ class PopupController {
       refreshBtn: document.getElementById('refreshBtn'),
       swapBtn: document.getElementById('swapBtn')
     };
+  }
+
+  /**
+   * 更新货币选项的显示名称
+   */
+  updateCurrencyOptions() {
+    const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CNY', 'KRW', 'INR', 'RUB', 'BRL', 'AUD', 'CAD', 'CHF'];
+
+    const updateSelect = (select) => {
+      if (!select) return;
+      Array.from(select.options).forEach(option => {
+        const code = option.value;
+        const name = t(`currencies.${code}`);
+        option.textContent = `${code} - ${name}`;
+      });
+    };
+
+    updateSelect(this.elements.sourceCurrency);
+    updateSelect(this.elements.targetCurrency);
   }
 
   /**
@@ -65,7 +90,7 @@ class PopupController {
       this.updateStats();
     } catch (error) {
       console.error('加载配置失败:', error);
-      this.updateStatus('Load failed');
+      this.updateStatus(t('loadFailed'));
     }
   }
 
@@ -121,7 +146,7 @@ class PopupController {
         this.config.enabled = this.elements.enableConversion.checked;
         this.saveConfig();
         this.notifyContentScript();
-        this.updateStatus(this.config.enabled ? 'Enabled' : 'Disabled');
+        this.updateStatus(this.config.enabled ? t('enabled') : t('disabled'));
       });
     }
 
@@ -183,22 +208,22 @@ class PopupController {
         }
 
         if (this.elements.rateTime) {
-          this.elements.rateTime.textContent = response.cached ? 'Cached' : 'Just now';
+          this.elements.rateTime.textContent = response.cached ? t('rateCached') : t('rateUpdated');
         }
 
-        this.updateStatus('Ready');
+        this.updateStatus(t('ready'));
       } else {
         if (this.elements.exchangeRate) {
           this.elements.exchangeRate.textContent = '--';
         }
-        this.updateStatus('Failed to get rate');
+        this.updateStatus(t('rateFailed'));
       }
     } catch (error) {
       console.error('获取汇率失败:', error);
       if (this.elements.exchangeRate) {
         this.elements.exchangeRate.textContent = '--';
       }
-      this.updateStatus('Network error');
+      this.updateStatus(t('networkError'));
     }
   }
 
@@ -217,7 +242,6 @@ class PopupController {
         }
       }
     } catch (error) {
-      // 忽略错误，可能是页面没有加载 content script
       if (this.elements.convertedCount) {
         this.elements.convertedCount.textContent = '0';
       }
@@ -228,7 +252,7 @@ class PopupController {
    * 刷新汇率
    */
   async refreshRates() {
-    this.updateStatus('Refreshing...');
+    this.updateStatus(t('rateRefreshing'));
     await chrome.runtime.sendMessage({ action: 'clearCache' });
     await this.updateExchangeRate();
   }
@@ -260,7 +284,7 @@ class PopupController {
         });
       }
     } catch (error) {
-      // 忽略错误，可能是页面没有加载 content script
+      // 忽略错误
     }
   }
 
