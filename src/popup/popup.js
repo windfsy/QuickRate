@@ -1,4 +1,5 @@
 // popup.js - 弹出窗口交互逻辑
+import './popup.css';
 
 /**
  * 弹出窗口控制器

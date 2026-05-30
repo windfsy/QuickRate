@@ -1,6 +1,7 @@
 const path = require('path');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
   entry: {
@@ -17,7 +18,7 @@ module.exports = {
     rules: [
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader']
+        use: [MiniCssExtractPlugin.loader, 'css-loader']
       }
     ]
   },
@@ -27,6 +28,9 @@ module.exports = {
         { from: 'src/manifest.json', to: 'manifest.json' },
         { from: 'public/icons', to: 'icons' }
       ]
+    }),
+    new MiniCssExtractPlugin({
+      filename: '[name].css'
     }),
     new HtmlWebpackPlugin({
       template: './src/popup/popup.html',
