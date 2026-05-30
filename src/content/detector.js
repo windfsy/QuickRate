@@ -19,25 +19,28 @@ export class AmountDetector {
     const results = [];
 
     // 匹配各种货币格式
+    // 数字部分：支持整数、千位分隔符、小数（最多6位）
+    const numPattern = '\\d{1,3}(?:[,\\. ]\\d{3})*(?:[,\\.]\\d{1,6})?|\\d+(?:[,\\.]\\d{1,6})';
+
     const patterns = [
-      // 符号前置: $100, €1,000.50, ¥ 100
+      // 符号前置: $100, €1,000.50, ¥ 100, $0.375
       {
-        regex: /([\$€£¥₩₹₽])\s*(\d{1,3}(?:[,. ]\d{3})*(?:[,.]\d{1,2})?)/g,
+        regex: new RegExp(`([\\$€£¥₩₹₽])\\s*(${numPattern})`, 'g'),
         type: 'symbol-prefix'
       },
       // 符号后置: 100$, 1,000€
       {
-        regex: /(\d{1,3}(?:[,. ]\d{3})*(?:[,.]\d{1,2})?)\s*([\$€£¥₩₹₽])/g,
+        regex: new RegExp(`(${numPattern})\\s*([\\$€£¥₩₹₽])`, 'g'),
         type: 'symbol-suffix'
       },
-      // 代码后置: 100 USD, 1,000.50 EUR
+      // 代码后置: 100 USD, 1,000.50 EUR, 0.375 USD
       {
-        regex: /(\d{1,3}(?:[,. ]\d{3})*(?:[,.]\d{1,2})?)\s*(USD|EUR|GBP|CNY|JPY|KRW|INR|RUB|BRL|AUD|CAD|CHF|NZD)/gi,
+        regex: new RegExp(`(${numPattern})\\s*(USD|EUR|GBP|CNY|JPY|KRW|INR|RUB|BRL|AUD|CAD|CHF|NZD)`, 'gi'),
         type: 'code-suffix'
       },
       // 代码前置: USD 100, EUR 1,000
       {
-        regex: /(USD|EUR|GBP|CNY|JPY|KRW|INR|RUB|BRL|AUD|CAD|CHF|NZD)\s*(\d{1,3}(?:[,. ]\d{3})*(?:[,.]\d{1,2})?)/gi,
+        regex: new RegExp(`(USD|EUR|GBP|CNY|JPY|KRW|INR|RUB|BRL|AUD|CAD|CHF|NZD)\\s*(${numPattern})`, 'gi'),
         type: 'code-prefix'
       }
     ];
@@ -136,15 +139,24 @@ export class AmountDetector {
     }
 
     // 排除明显非金额的数字
-    const invalidPatterns = [
-      /^\d{4}$/, // 年份 (2024)
-      /^\d{5,}$/, // 过长的数字 (订单号等)
-      /^0+$/, // 全零
-      /^\d+\.\d{3,}$/ // 过多小数位
-    ];
-
     const valueStr = amount.value.toString();
-    return !invalidPatterns.some(pattern => pattern.test(valueStr));
+
+    // 年份 (2024, 1999)
+    if (/^(19|20)\d{2}$/.test(valueStr)) {
+      return false;
+    }
+
+    // 过长的数字 (订单号、ID等) - 超过10位整数
+    if (/^\d{10,}$/.test(valueStr)) {
+      return false;
+    }
+
+    // 全零
+    if (/^0+(\.0+)?$/.test(valueStr)) {
+      return false;
+    }
+
+    return true;
   }
 
   /**

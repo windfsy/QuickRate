@@ -60,6 +60,28 @@ describe('AmountDetector', () => {
       expect(results[1].currency).toBe('EUR');
     });
 
+    test('应该识别3位小数的金额', () => {
+      const text = '$0.375/M';
+      const results = AmountDetector.detect(text);
+
+      expect(results).toHaveLength(1);
+      expect(results[0]).toMatchObject({
+        value: 0.375,
+        currency: 'USD'
+      });
+    });
+
+    test('应该识别带单位的金额', () => {
+      const text = '输入 Token ¥2.03/M 输出 Token ¥8.12/M 缓存读取 ¥0.20/M 缓存写入 $0.375/M';
+      const results = AmountDetector.detect(text);
+
+      expect(results).toHaveLength(4);
+      expect(results[0].value).toBe(2.03);
+      expect(results[1].value).toBe(8.12);
+      expect(results[2].value).toBe(0.20);
+      expect(results[3].value).toBe(0.375);
+    });
+
     test('应该识别代码后置的金额', () => {
       const text = '价格 100 USD';
       const results = AmountDetector.detect(text);
