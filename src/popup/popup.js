@@ -1,109 +1,282 @@
 // popup.js - 弹出窗口交互逻辑
 
-document.addEventListener('DOMContentLoaded', () => {
-  const sourceCurrency = document.getElementById('sourceCurrency');
-  const targetCurrency = document.getElementById('targetCurrency');
-  const exchangeRate = document.getElementById('exchangeRate');
-  const enableConversion = document.getElementById('enableConversion');
-  const status = document.getElementById('status');
-
-  // 加载保存的配置
-  loadConfig();
-
-  // 事件监听
-  sourceCurrency.addEventListener('change', handleCurrencyChange);
-  targetCurrency.addEventListener('change', handleCurrencyChange);
-  enableConversion.addEventListener('change', handleToggleChange);
-
-  /**
-   * 加载保存的配置
-   */
-  function loadConfig() {
-    chrome.storage.local.get(['sourceCurrency', 'targetCurrency', 'enabled'], (result) => {
-      if (result.sourceCurrency) {
-        sourceCurrency.value = result.sourceCurrency;
-      }
-      if (result.targetCurrency) {
-        targetCurrency.value = result.targetCurrency;
-      }
-      if (result.enabled !== undefined) {
-        enableConversion.checked = result.enabled;
-      }
-      updateExchangeRate();
-    });
-  }
-
-  /**
-   * 处理货币选择变化
-   */
-  function handleCurrencyChange() {
-    const config = {
-      sourceCurrency: sourceCurrency.value,
-      targetCurrency: targetCurrency.value
+/**
+ * 弹出窗口控制器
+ */
+class PopupController {
+  constructor() {
+    this.elements = {};
+    this.config = {
+      sourceCurrency: 'USD',
+      targetCurrency: 'CNY',
+      enabled: true,
+      showOriginal: true
     };
-
-    chrome.storage.local.set(config, () => {
-      updateExchangeRate();
-      notifyContentScript();
-    });
+    this.init();
   }
 
   /**
-   * 处理开关变化
+   * 初始化
    */
-  function handleToggleChange() {
-    const enabled = enableConversion.checked;
+  init() {
+    this.bindElements();
+    this.loadConfig();
+    this.setupEventListeners();
+    this.updateStatus('就绪');
+  }
 
-    chrome.storage.local.set({ enabled }, () => {
-      notifyContentScript();
-      updateStatus(enabled ? '转换已启用' : '转换已禁用');
-    });
+  /**
+   * 绑定 DOM 元素
+   */
+  bindElements() {
+    this.elements = {
+      sourceCurrency: document.getElementById('sourceCurrency'),
+      targetCurrency: document.getElementById('targetCurrency'),
+      exchangeRate: document.getElementById('exchangeRate'),
+      enableConversion: document.getElementById('enableConversion'),
+      showOriginal: document.getElementById('showOriginal'),
+      status: document.getElementById('status'),
+      convertedCount: document.getElementById('convertedCount'),
+      refreshBtn: document.getElementById('refreshBtn'),
+      swapBtn: document.getElementById('swapBtn')
+    };
+  }
+
+  /**
+   * 加载配置
+   */
+  async loadConfig() {
+    try {
+      const result = await chrome.storage.local.get([
+        'sourceCurrency',
+        'targetCurrency',
+        'enabled',
+        'showOriginal'
+      ]);
+
+      this.config = {
+        ...this.config,
+        ...result
+      };
+
+      this.updateUI();
+      this.updateExchangeRate();
+      this.updateStats();
+    } catch (error) {
+      console.error('加载配置失败:', error);
+      this.updateStatus('加载配置失败');
+    }
+  }
+
+  /**
+   * 更新 UI 状态
+   */
+  updateUI() {
+    const { sourceCurrency, targetCurrency, enabled, showOriginal } = this.config;
+
+    if (this.elements.sourceCurrency) {
+      this.elements.sourceCurrency.value = sourceCurrency;
+    }
+
+    if (this.elements.targetCurrency) {
+      this.elements.targetCurrency.value = targetCurrency;
+    }
+
+    if (this.elements.enableConversion) {
+      this.elements.enableConversion.checked = enabled;
+    }
+
+    if (this.elements.showOriginal) {
+      this.elements.showOriginal.checked = showOriginal;
+    }
+  }
+
+  /**
+   * 设置事件监听
+   */
+  setupEventListeners() {
+    // 货币选择变化
+    if (this.elements.sourceCurrency) {
+      this.elements.sourceCurrency.addEventListener('change', () => {
+        this.config.sourceCurrency = this.elements.sourceCurrency.value;
+        this.saveConfig();
+        this.updateExchangeRate();
+        this.notifyContentScript();
+      });
+    }
+
+    if (this.elements.targetCurrency) {
+      this.elements.targetCurrency.addEventListener('change', () => {
+        this.config.targetCurrency = this.elements.targetCurrency.value;
+        this.saveConfig();
+        this.updateExchangeRate();
+        this.notifyContentScript();
+      });
+    }
+
+    // 开关变化
+    if (this.elements.enableConversion) {
+      this.elements.enableConversion.addEventListener('change', () => {
+        this.config.enabled = this.elements.enableConversion.checked;
+        this.saveConfig();
+        this.notifyContentScript();
+        this.updateStatus(this.config.enabled ? '转换已启用' : '转换已禁用');
+      });
+    }
+
+    // 显示原金额开关
+    if (this.elements.showOriginal) {
+      this.elements.showOriginal.addEventListener('change', () => {
+        this.config.showOriginal = this.elements.showOriginal.checked;
+        this.saveConfig();
+        this.notifyContentScript();
+      });
+    }
+
+    // 刷新按钮
+    if (this.elements.refreshBtn) {
+      this.elements.refreshBtn.addEventListener('click', () => {
+        this.refreshRates();
+      });
+    }
+
+    // 交换按钮
+    if (this.elements.swapBtn) {
+      this.elements.swapBtn.addEventListener('click', () => {
+        this.swapCurrencies();
+      });
+    }
+  }
+
+  /**
+   * 保存配置
+   */
+  async saveConfig() {
+    try {
+      await chrome.storage.local.set(this.config);
+    } catch (error) {
+      console.error('保存配置失败:', error);
+    }
   }
 
   /**
    * 更新汇率显示
    */
-  function updateExchangeRate() {
-    const from = sourceCurrency.value;
-    const to = targetCurrency.value;
+  async updateExchangeRate() {
+    const { sourceCurrency, targetCurrency } = this.config;
 
-    exchangeRate.textContent = '加载中...';
+    if (this.elements.exchangeRate) {
+      this.elements.exchangeRate.textContent = '加载中...';
+    }
 
-    // 通过 background script 获取汇率
-    chrome.runtime.sendMessage(
-      { action: 'getRate', from, to },
-      (response) => {
-        if (response && response.rate) {
-          exchangeRate.textContent = `1 ${from} = ${response.rate} ${to}`;
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'getRate',
+        from: sourceCurrency,
+        to: targetCurrency
+      });
+
+      if (response && response.rate) {
+        const rateText = `1 ${sourceCurrency} = ${response.rate.toFixed(4)} ${targetCurrency}`;
+        if (this.elements.exchangeRate) {
+          this.elements.exchangeRate.textContent = rateText;
+        }
+
+        // 显示缓存状态
+        if (response.cached) {
+          this.updateStatus('使用缓存汇率');
         } else {
-          exchangeRate.textContent = '获取失败';
+          this.updateStatus('汇率已更新');
+        }
+      } else {
+        if (this.elements.exchangeRate) {
+          this.elements.exchangeRate.textContent = '获取失败';
+        }
+        this.updateStatus('获取汇率失败');
+      }
+    } catch (error) {
+      console.error('获取汇率失败:', error);
+      if (this.elements.exchangeRate) {
+        this.elements.exchangeRate.textContent = '网络错误';
+      }
+      this.updateStatus('网络错误');
+    }
+  }
+
+  /**
+   * 更新统计信息
+   */
+  async updateStats() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab) {
+        const response = await chrome.tabs.sendMessage(tab.id, { action: 'getStatus' });
+        if (response && response.stats) {
+          if (this.elements.convertedCount) {
+            this.elements.convertedCount.textContent = response.stats.convertedCount || 0;
+          }
         }
       }
-    );
+    } catch (error) {
+      // 忽略错误，可能是页面没有加载 content script
+      if (this.elements.convertedCount) {
+        this.elements.convertedCount.textContent = '-';
+      }
+    }
+  }
+
+  /**
+   * 刷新汇率
+   */
+  async refreshRates() {
+    this.updateStatus('正在刷新汇率...');
+    await chrome.runtime.sendMessage({ action: 'clearCache' });
+    await this.updateExchangeRate();
+  }
+
+  /**
+   * 交换源货币和目标货币
+   */
+  swapCurrencies() {
+    const { sourceCurrency, targetCurrency } = this.config;
+    this.config.sourceCurrency = targetCurrency;
+    this.config.targetCurrency = sourceCurrency;
+
+    this.updateUI();
+    this.saveConfig();
+    this.updateExchangeRate();
+    this.notifyContentScript();
+    this.updateStatus('货币已交换');
   }
 
   /**
    * 通知 content script 配置变化
    */
-  function notifyContentScript() {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, {
+  async notifyContentScript() {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab) {
+        await chrome.tabs.sendMessage(tab.id, {
           action: 'configUpdated',
-          config: {
-            sourceCurrency: sourceCurrency.value,
-            targetCurrency: targetCurrency.value,
-            enabled: enableConversion.checked
-          }
+          config: this.config
         });
       }
-    });
+    } catch (error) {
+      // 忽略错误，可能是页面没有加载 content script
+    }
   }
 
   /**
    * 更新状态显示
    */
-  function updateStatus(message) {
-    status.textContent = message;
+  updateStatus(message) {
+    if (this.elements.status) {
+      this.elements.status.textContent = message;
+    }
   }
+}
+
+// 初始化弹出窗口
+document.addEventListener('DOMContentLoaded', () => {
+  new PopupController();
 });

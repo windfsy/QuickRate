@@ -9,47 +9,98 @@
 <body>
   <div class="popup">
     <header class="popup__header">
-      <h1 class="popup__title">QuickRate</h1>
+      <div class="popup__logo">
+        <span class="popup__icon">💱</span>
+        <h1 class="popup__title">QuickRate</h1>
+      </div>
+      <button id="refreshBtn" class="popup__refresh-btn" title="刷新汇率">
+        ↻
+      </button>
     </header>
 
     <main class="popup__content">
-      <div class="currency-select">
-        <label class="currency-select__label">源货币</label>
-        <select id="sourceCurrency" class="currency-select__dropdown">
-          <option value="USD">USD - 美元</option>
-          <option value="EUR">EUR - 欧元</option>
-          <option value="GBP">GBP - 英镑</option>
-          <option value="JPY">JPY - 日元</option>
-        </select>
-      </div>
+      <div class="currency-section">
+        <div class="currency-select">
+          <label class="currency-select__label">源货币</label>
+          <select id="sourceCurrency" class="currency-select__dropdown">
+            <option value="USD">🇺🇸 USD - 美元</option>
+            <option value="EUR">🇪🇺 EUR - 欧元</option>
+            <option value="GBP">🇬🇧 GBP - 英镑</option>
+            <option value="JPY">🇯🇵 JPY - 日元</option>
+            <option value="CNY">🇨🇳 CNY - 人民币</option>
+            <option value="KRW">🇰🇷 KRW - 韩元</option>
+            <option value="INR">🇮🇳 INR - 印度卢比</option>
+            <option value="RUB">🇷🇺 RUB - 卢布</option>
+            <option value="BRL">🇧🇷 BRL - 雷亚尔</option>
+            <option value="AUD">🇦🇺 AUD - 澳元</option>
+            <option value="CAD">🇨🇦 CAD - 加元</option>
+            <option value="CHF">🇨🇭 CHF - 瑞士法郎</option>
+          </select>
+        </div>
 
-      <div class="currency-select">
-        <label class="currency-select__label">目标货币</label>
-        <select id="targetCurrency" class="currency-select__dropdown">
-          <option value="CNY">CNY - 人民币</option>
-          <option value="USD">USD - 美元</option>
-          <option value="EUR">EUR - 欧元</option>
-          <option value="GBP">GBP - 英镑</option>
-          <option value="JPY">JPY - 日元</option>
-        </select>
+        <button id="swapBtn" class="swap-btn" title="交换货币">
+          ⇅
+        </button>
+
+        <div class="currency-select">
+          <label class="currency-select__label">目标货币</label>
+          <select id="targetCurrency" class="currency-select__dropdown">
+            <option value="CNY">🇨🇳 CNY - 人民币</option>
+            <option value="USD">🇺🇸 USD - 美元</option>
+            <option value="EUR">🇪🇺 EUR - 欧元</option>
+            <option value="GBP">🇬🇧 GBP - 英镑</option>
+            <option value="JPY">🇯🇵 JPY - 日元</option>
+            <option value="KRW">🇰🇷 KRW - 韩元</option>
+            <option value="INR">🇮🇳 INR - 印度卢比</option>
+            <option value="RUB">🇷🇺 RUB - 卢布</option>
+            <option value="BRL">🇧🇷 BRL - 雷亚尔</option>
+            <option value="AUD">🇦🇺 AUD - 澳元</option>
+            <option value="CAD">🇨🇦 CAD - 加元</option>
+            <option value="CHF">🇨🇭 CHF - 瑞士法郎</option>
+          </select>
+        </div>
       </div>
 
       <div class="rate-info">
-        <span class="rate-info__label">当前汇率</span>
+        <div class="rate-info__header">
+          <span class="rate-info__label">当前汇率</span>
+          <span id="rateStatus" class="rate-info__status">●</span>
+        </div>
         <span id="exchangeRate" class="rate-info__value">加载中...</span>
       </div>
 
-      <div class="toggle-group">
-        <label class="toggle">
-          <input type="checkbox" id="enableConversion" checked>
-          <span class="toggle__slider"></span>
-        </label>
-        <span class="toggle-group__label">启用转换</span>
+      <div class="toggle-section">
+        <div class="toggle-group">
+          <label class="toggle">
+            <input type="checkbox" id="enableConversion" checked>
+            <span class="toggle__slider"></span>
+          </label>
+          <span class="toggle-group__label">启用转换</span>
+        </div>
+
+        <div class="toggle-group">
+          <label class="toggle">
+            <input type="checkbox" id="showOriginal" checked>
+            <span class="toggle__slider"></span>
+          </label>
+          <span class="toggle-group__label">显示原金额</span>
+        </div>
+      </div>
+
+      <div class="stats-section">
+        <div class="stat-item">
+          <span class="stat-item__label">已转换</span>
+          <span id="convertedCount" class="stat-item__value">0</span>
+          <span class="stat-item__unit">个金额</span>
+        </div>
       </div>
     </main>
 
     <footer class="popup__footer">
-      <span id="status" class="status">就绪</span>
+      <div class="status-bar">
+        <span id="status" class="status">就绪</span>
+        <span class="version">v1.0.0</span>
+      </div>
     </footer>
   </div>
 
