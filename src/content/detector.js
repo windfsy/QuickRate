@@ -130,6 +130,11 @@ export class AmountDetector {
    * @returns {boolean} 是否有效
    */
   static isValidAmount(amount) {
+    // 排除负值
+    if (amount.value <= 0) {
+      return false;
+    }
+
     // 排除明显非金额的数字
     const invalidPatterns = [
       /^\d{4}$/, // 年份 (2024)
