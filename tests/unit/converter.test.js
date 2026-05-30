@@ -117,38 +117,6 @@ describe('CurrencyConverter', () => {
     });
   });
 
-  describe('batchConvert', () => {
-    test('应该批量转换', async () => {
-      chrome.runtime.sendMessage.mockResolvedValue({ rate: 7.24 });
-
-      const amounts = [
-        { value: 100, from: 'USD', to: 'CNY' },
-        { value: 200, from: 'USD', to: 'CNY' },
-        { value: 300, from: 'USD', to: 'CNY' }
-      ];
-
-      const results = await converter.batchConvert(amounts);
-
-      expect(results).toHaveLength(3);
-      expect(results[0].converted).toBe(724);
-      expect(results[1].converted).toBe(1448);
-      expect(results[2].converted).toBe(2172);
-    });
-
-    test('应该处理混合货币', async () => {
-      chrome.runtime.sendMessage.mockResolvedValue({ rate: 7.24 });
-
-      const amounts = [
-        { value: 100, from: 'USD', to: 'CNY' },
-        { value: 100, from: 'EUR', to: 'CNY' }
-      ];
-
-      const results = await converter.batchConvert(amounts);
-
-      expect(results).toHaveLength(2);
-    });
-  });
-
   describe('clearCache', () => {
     test('应该清除缓存', () => {
       converter.rateCache.set('USD_CNY', { rate: 7.24, timestamp: Date.now() });

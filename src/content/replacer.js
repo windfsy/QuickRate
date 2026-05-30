@@ -3,7 +3,6 @@
 import { AmountDetector } from './detector.js';
 import { CurrencyConverter } from './converter.js';
 import { SKIP_TAGS, CSS_CLASSES } from '../shared/constants.js';
-import { debounce, throttle } from '../shared/utils.js';
 
 /**
  * DOM 替换器
@@ -11,19 +10,13 @@ import { debounce, throttle } from '../shared/utils.js';
 export class DomReplacer {
   constructor() {
     this.converter = new CurrencyConverter();
-    this.processedNodes = new WeakSet();
     this.observer = null;
     this.config = null;
     this.isProcessing = false;
-    this.processingQueue = [];
     this.stats = {
       convertedCount: 0,
       startTime: null
     };
-
-    // 绑定防抖和节流方法
-    this.debouncedProcessQueue = debounce(this.processQueue.bind(this), 100);
-    this.throttledProcessPage = throttle(this.processPage.bind(this), 500);
   }
 
   /**
@@ -32,7 +25,6 @@ export class DomReplacer {
    */
   init(config) {
     this.config = config;
-    this.setupObserver();
     this.injectStyles();
   }
 
@@ -51,6 +43,7 @@ export class DomReplacer {
         cursor: help;
         border-bottom: 1px dashed #3498db;
         position: relative;
+        display: inline;
       }
 
       .${CSS_CLASSES.CONVERTED}:hover::after {
@@ -90,18 +83,25 @@ export class DomReplacer {
     }
 
     this.observer = new MutationObserver((mutations) => {
-      if (!this.config || !this.config.enabled) {
+      if (!this.config || !this.config.enabled || this.isProcessing) {
         return;
       }
 
-      mutations.forEach((mutation) => {
-        mutation.addedNodes.forEach((node) => {
-          this.processingQueue.push(node);
-        });
-      });
+      // 收集需要处理的节点，过滤掉插件自身创建的节点
+      const nodesToProcess = [];
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          // 跳过插件自己创建的元素
+          if (this.isQuickRateNode(node)) {
+            continue;
+          }
+          nodesToProcess.push(node);
+        }
+      }
 
-      // 使用防抖处理队列
-      this.debouncedProcessQueue();
+      if (nodesToProcess.length > 0) {
+        this.processNodes(nodesToProcess);
+      }
     });
 
     this.observer.observe(document.body, {
@@ -111,15 +111,100 @@ export class DomReplacer {
   }
 
   /**
+   * 检查是否是插件创建的节点
+   * @param {Node} node - DOM 节点
+   * @returns {boolean}
+   */
+  isQuickRateNode(node) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      // 检查元素是否有插件的类名
+      if (node.classList && (
+        node.classList.contains(CSS_CLASSES.CONVERTED) ||
+        node.classList.contains(CSS_CLASSES.CONVERTING) ||
+        node.classList.contains(CSS_CLASSES.ERROR)
+      )) {
+        return true;
+      }
+
+      // 检查是否有插件的 style 标签
+      if (node.id === 'quickrate-styles') {
+        return true;
+      }
+
+      // 检查父元素
+      if (node.closest && node.closest(`.${CSS_CLASSES.CONVERTED}`)) {
+        return true;
+      }
+    }
+
+    // 检查文本节点的父元素
+    if (node.nodeType === Node.TEXT_NODE && node.parentNode) {
+      if (node.parentNode.classList && node.parentNode.classList.contains(CSS_CLASSES.CONVERTED)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * 处理整个页面
    */
   async processPage() {
-    if (!this.config || !this.config.enabled) {
+    if (!this.config || !this.config.enabled || this.isProcessing) {
       return;
     }
 
+    this.isProcessing = true;
     this.stats.startTime = Date.now();
-    await this.processNode(document.body);
+
+    // 临时断开 Observer 防止无限循环
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+
+    try {
+      await this.processNode(document.body);
+    } catch (error) {
+      console.error('处理页面失败:', error);
+    } finally {
+      this.isProcessing = false;
+
+      // 重新连接 Observer
+      this.setupObserver();
+    }
+  }
+
+  /**
+   * 批量处理节点
+   * @param {Node[]} nodes - 节点数组
+   */
+  async processNodes(nodes) {
+    if (this.isProcessing) {
+      return;
+    }
+
+    this.isProcessing = true;
+
+    // 临时断开 Observer
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+
+    try {
+      for (const node of nodes) {
+        if (!this.isQuickRateNode(node)) {
+          await this.processNode(node);
+        }
+      }
+    } catch (error) {
+      console.error('批量处理节点失败:', error);
+    } finally {
+      this.isProcessing = false;
+
+      // 重新连接 Observer
+      this.setupObserver();
+    }
   }
 
   /**
@@ -127,7 +212,12 @@ export class DomReplacer {
    * @param {Node} node - DOM 节点
    */
   async processNode(node) {
-    if (!node || this.processedNodes.has(node)) {
+    if (!node) {
+      return;
+    }
+
+    // 跳过插件创建的节点
+    if (this.isQuickRateNode(node)) {
       return;
     }
 
@@ -136,15 +226,10 @@ export class DomReplacer {
       return;
     }
 
-    // 跳过已处理的转换元素
-    if (node.nodeType === Node.ELEMENT_NODE && node.classList?.contains(CSS_CLASSES.CONVERTED)) {
-      return;
-    }
-
     if (node.nodeType === Node.TEXT_NODE) {
       await this.processTextNode(node);
     } else if (node.nodeType === Node.ELEMENT_NODE) {
-      // 递归处理子节点
+      // 递归处理子节点（先复制一份，因为处理过程中可能修改 DOM）
       const children = Array.from(node.childNodes);
       for (const child of children) {
         await this.processNode(child);
@@ -157,7 +242,13 @@ export class DomReplacer {
    * @param {Text} textNode - 文本节点
    */
   async processTextNode(textNode) {
-    if (this.processedNodes.has(textNode)) {
+    // 检查节点是否还在 DOM 中
+    if (!textNode.parentNode) {
+      return;
+    }
+
+    // 检查父元素是否是插件创建的
+    if (this.isQuickRateNode(textNode)) {
       return;
     }
 
@@ -176,8 +267,6 @@ export class DomReplacer {
       return;
     }
 
-    this.processedNodes.add(textNode);
-
     try {
       const fragment = document.createDocumentFragment();
       let lastIndex = 0;
@@ -194,11 +283,12 @@ export class DomReplacer {
         const span = document.createElement('span');
         span.className = CSS_CLASSES.CONVERTING;
         span.textContent = amount.raw;
+        span.dataset.quickrate = 'true';
 
-        // 异步转换
+        // 异步转换（不等待完成，避免阻塞）
         this.converter.convert(amount.value, amount.currency, this.config.targetCurrency)
           .then(result => {
-            if (result) {
+            if (result && span.parentNode) {
               span.className = CSS_CLASSES.CONVERTED;
               span.dataset.original = amount.raw;
               span.dataset.converted = result.formatted;
@@ -212,7 +302,9 @@ export class DomReplacer {
           })
           .catch(error => {
             console.error('转换失败:', error);
-            span.className = CSS_CLASSES.ERROR;
+            if (span.parentNode) {
+              span.className = CSS_CLASSES.ERROR;
+            }
           });
 
         fragment.appendChild(span);
@@ -225,7 +317,7 @@ export class DomReplacer {
       }
 
       // 替换原始节点
-      if (fragment.childNodes.length > 0) {
+      if (fragment.childNodes.length > 0 && textNode.parentNode) {
         textNode.parentNode.replaceChild(fragment, textNode);
       }
     } catch (error) {
@@ -241,44 +333,35 @@ export class DomReplacer {
     this.config = config;
 
     if (config.enabled) {
-      this.throttledProcessPage();
+      this.processPage();
     } else {
       this.restoreOriginal();
     }
   }
 
   /**
-   * 处理队列
-   */
-  async processQueue() {
-    if (this.isProcessing || this.processingQueue.length === 0) {
-      return;
-    }
-
-    this.isProcessing = true;
-
-    while (this.processingQueue.length > 0) {
-      const node = this.processingQueue.shift();
-      await this.processNode(node);
-    }
-
-    this.isProcessing = false;
-  }
-
-  /**
    * 恢复原始内容
    */
   restoreOriginal() {
-    const convertedElements = document.querySelectorAll(`.${CSS_CLASSES.CONVERTED}`);
+    // 临时断开 Observer
+    if (this.observer) {
+      this.observer.disconnect();
+    }
+
+    const convertedElements = document.querySelectorAll(`.${CSS_CLASSES.CONVERTED}, .${CSS_CLASSES.CONVERTING}, .${CSS_CLASSES.ERROR}`);
     convertedElements.forEach(element => {
-      const original = element.dataset.original;
+      const original = element.dataset.original || element.textContent;
       if (original) {
         const textNode = document.createTextNode(original);
         element.parentNode.replaceChild(textNode, element);
       }
     });
 
-    this.processedNodes = new WeakSet();
+    // 合并相邻的文本节点
+    document.body.normalize();
+
+    // 重新连接 Observer
+    this.setupObserver();
   }
 
   /**
@@ -299,7 +382,6 @@ export class DomReplacer {
     }
 
     this.restoreOriginal();
-    this.processedNodes = new WeakSet();
   }
 
   /**
@@ -309,7 +391,6 @@ export class DomReplacer {
     const convertedElements = document.querySelectorAll(`.${CSS_CLASSES.CONVERTED}`);
     return {
       convertedCount: convertedElements.length || this.stats.convertedCount,
-      processedNodes: this.processedNodes.constructor.name === 'WeakSet' ? 'N/A' : this.processedNodes.size,
       startTime: this.stats.startTime,
       duration: this.stats.startTime ? Date.now() - this.stats.startTime : 0
     };

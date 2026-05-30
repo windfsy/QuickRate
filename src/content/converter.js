@@ -8,7 +8,8 @@ import { CURRENCY_CODES } from '../shared/constants.js';
 export class CurrencyConverter {
   constructor() {
     this.rateCache = new Map();
-    this.pendingConversions = new Map();
+    this.pendingRatePromise = null;
+    this.pendingRateKey = null;
   }
 
   /**
@@ -30,24 +31,8 @@ export class CurrencyConverter {
       };
     }
 
-    const cacheKey = `${from}_${to}`;
-
-    // 检查是否有相同的转换正在进行
-    if (this.pendingConversions.has(cacheKey)) {
-      const rate = await this.pendingConversions.get(cacheKey);
-      return this.performConversion(value, from, to, rate);
-    }
-
-    // 获取汇率
-    const ratePromise = this.getRate(from, to);
-    this.pendingConversions.set(cacheKey, ratePromise);
-
-    try {
-      const rate = await ratePromise;
-      return this.performConversion(value, from, to, rate);
-    } finally {
-      this.pendingConversions.delete(cacheKey);
-    }
+    const rate = await this.getRate(from, to);
+    return this.performConversion(value, from, to, rate);
   }
 
   /**
@@ -81,51 +66,65 @@ export class CurrencyConverter {
     const cacheKey = `${from}_${to}`;
 
     // 检查内存缓存
-    if (this.rateCache.has(cacheKey)) {
-      const cached = this.rateCache.get(cacheKey);
+    const cached = this.rateCache.get(cacheKey);
+    if (cached) {
       const age = Date.now() - cached.timestamp;
       if (age < 60 * 60 * 1000) { // 1小时
         return cached.rate;
       }
+      this.rateCache.delete(cacheKey);
     }
 
-    // 通过 background script 获取汇率
-    let retries = 3;
-    while (retries > 0) {
-      try {
-        const response = await chrome.runtime.sendMessage({
-          action: 'getRate',
-          from,
-          to
+    // 如果有相同的请求正在进行，复用它
+    if (this.pendingRatePromise && this.pendingRateKey === cacheKey) {
+      return this.pendingRatePromise;
+    }
+
+    // 发起新请求
+    this.pendingRateKey = cacheKey;
+    this.pendingRatePromise = this.fetchRate(from, to);
+
+    try {
+      const rate = await this.pendingRatePromise;
+      return rate;
+    } finally {
+      this.pendingRatePromise = null;
+      this.pendingRateKey = null;
+    }
+  }
+
+  /**
+   * 从 API 获取汇率
+   * @param {string} from - 源货币代码
+   * @param {string} to - 目标货币代码
+   * @returns {Promise<number>} 汇率
+   */
+  async fetchRate(from, to) {
+    const cacheKey = `${from}_${to}`;
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        action: 'getRate',
+        from,
+        to
+      });
+
+      if (response && response.rate) {
+        // 缓存汇率
+        this.rateCache.set(cacheKey, {
+          rate: response.rate,
+          timestamp: Date.now()
         });
-
-        if (response && response.rate) {
-          // 缓存汇率
-          this.rateCache.set(cacheKey, {
-            rate: response.rate,
-            timestamp: Date.now()
-          });
-
-          return response.rate;
-        }
-
-        // 如果响应无效，减少重试次数
-        retries--;
-        if (retries > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      } catch (error) {
-        console.error(`获取汇率失败 (剩余重试: ${retries}):`, error);
-        retries--;
-        if (retries > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        return response.rate;
       }
-    }
 
-    // 所有重试都失败，返回默认汇率
-    console.warn(`使用默认汇率: ${from} -> ${to}`);
-    return this.getDefaultRate(from, to);
+      // 响应无效，使用默认汇率
+      console.warn('API 响应无效，使用默认汇率');
+      return this.getDefaultRate(from, to);
+    } catch (error) {
+      console.error('获取汇率失败:', error.message);
+      return this.getDefaultRate(from, to);
+    }
   }
 
   /**
@@ -187,43 +186,6 @@ export class CurrencyConverter {
     // 某些货币通常不使用小数
     const noDecimalCurrencies = ['JPY', 'KRW', 'VND', 'CLP'];
     return noDecimalCurrencies.includes(currency) ? 0 : 2;
-  }
-
-  /**
-   * 批量转换
-   * @param {Array} amounts - 金额列表 [{value, from, to}]
-   * @returns {Promise<Array>} 转换结果列表
-   */
-  async batchConvert(amounts) {
-    // 按货币对分组，减少 API 调用
-    const grouped = new Map();
-
-    amounts.forEach(({ value, from, to }) => {
-      const key = `${from}_${to}`;
-      if (!grouped.has(key)) {
-        grouped.set(key, { from, to, items: [] });
-      }
-      grouped.get(key).items.push(value);
-    });
-
-    // 并行获取汇率
-    const ratePromises = Array.from(grouped.values()).map(async ({ from, to }) => {
-      const rate = await this.getRate(from, to);
-      return { from, to, rate };
-    });
-
-    const rates = await Promise.all(ratePromises);
-    const rateMap = new Map();
-
-    rates.forEach(({ from, to, rate }) => {
-      rateMap.set(`${from}_${to}`, rate);
-    });
-
-    // 执行转换
-    return amounts.map(({ value, from, to }) => {
-      const rate = rateMap.get(`${from}_${to}`) || this.getDefaultRate(from, to);
-      return this.performConversion(value, from, to, rate);
-    });
   }
 
   /**

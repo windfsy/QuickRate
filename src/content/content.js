@@ -18,34 +18,46 @@ class QuickRate {
    */
   async init() {
     try {
+      console.log('[QuickRate] 开始初始化...');
+
       // 加载配置
       await this.loadConfig();
+      console.log('[QuickRate] 配置已加载:', this.config);
 
       // 初始化替换器
       this.replacer.init(this.config);
 
-      // 处理页面
-      if (this.config.enabled) {
-        // 使用 requestIdleCallback 优化性能
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(async () => {
-            await this.replacer.processPage();
-          }, { timeout: 2000 });
-        } else {
-          await this.replacer.processPage();
-        }
-      }
-
       // 监听消息
       this.setupMessageListener();
 
-      // 监听页面可见性变化
-      this.setupVisibilityListener();
+      // 处理页面（延迟到 DOM 就绪）
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          this.startProcessing();
+        });
+      } else {
+        // DOM 已就绪，延迟一点执行确保页面稳定
+        setTimeout(() => this.startProcessing(), 100);
+      }
 
-      console.log('QuickRate 初始化完成');
+      console.log('[QuickRate] 初始化完成');
     } catch (error) {
-      console.error('QuickRate 初始化失败:', error);
+      console.error('[QuickRate] 初始化失败:', error);
     }
+  }
+
+  /**
+   * 开始处理页面
+   */
+  async startProcessing() {
+    if (!this.config.enabled) {
+      console.log('[QuickRate] 功能已禁用');
+      return;
+    }
+
+    console.log('[QuickRate] 开始处理页面...');
+    await this.replacer.processPage();
+    console.log('[QuickRate] 页面处理完成');
   }
 
   /**
@@ -68,6 +80,8 @@ class QuickRate {
    */
   setupMessageListener() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      console.log('[QuickRate] 收到消息:', request.action);
+
       switch (request.action) {
         case 'configUpdated':
           this.handleConfigUpdate(request.config);
@@ -106,6 +120,7 @@ class QuickRate {
    * @param {Object} config - 新配置
    */
   handleConfigUpdate(config) {
+    console.log('[QuickRate] 配置更新:', config);
     this.config = {
       ...this.config,
       ...config
@@ -115,29 +130,16 @@ class QuickRate {
   }
 
   /**
-   * 设置页面可见性监听
-   */
-  setupVisibilityListener() {
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && this.config.enabled) {
-        // 页面重新可见时，检查是否需要重新处理
-        const stats = this.replacer.getStats();
-        if (stats.convertedCount === 0) {
-          this.replacer.reprocess();
-        }
-      }
-    });
-  }
-
-  /**
    * 销毁
    */
   destroy() {
+    console.log('[QuickRate] 销毁');
     this.replacer.destroy();
   }
 }
 
 // 启动 QuickRate
+console.log('[QuickRate] 脚本已加载');
 const quickRate = new QuickRate();
 
 // 页面卸载时销毁
