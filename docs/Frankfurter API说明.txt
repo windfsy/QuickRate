@@ -1,0 +1,645 @@
+Frankfurter
+Exchange rates and currency data API
+GitHub
+Playground
+This documents the new v2 API. For v1 docs, go here.
+Frankfurter tracks daily exchange rates from 82 central banks, covering 201 currencies back to 1948.
+
+The public API lives at api.frankfurter.dev. It requires no API key. The project is open source, so you can also self-host for full control.
+
+There's also an MCP server for AI assistants.
+
+Rates
+Fetch the latest exchange rates.
+
+/* https://api.frankfurter.dev/v2/rates */
+[
+  {
+    "date": "2026-05-30",
+    "base": "EUR",
+    "quote": "AED",
+    "rate": 4.2802
+  },
+  {
+    "date": "2026-05-30",
+    "base": "EUR",
+    "quote": "AFN",
+    "rate": 74.446
+  },
+  {
+    "date": "2026-05-29",
+    "base": "EUR",
+    "quote": "ALL",
+    "rate": 95.47
+  },
+  {
+    "date": "2026-05-30",
+    "base": "EUR",
+    "quote": "AMD",
+    "rate": 428.75
+  },
+  {
+    "date": "2026-05-30",
+    "base": "EUR",
+    "quote": "ANG",
+    "rate": 2.0862
+  },
+  "..."
+]
+
+
+Change the base currency with .base
+
+/* https://api.frankfurter.dev/v2/rates?base=USD */
+[
+  {
+    "date": "2026-05-30",
+    "base": "USD",
+    "quote": "AED",
+    "rate": 3.6725
+  },
+  {
+    "date": "2026-05-30",
+    "base": "USD",
+    "quote": "AFN",
+    "rate": 63.877
+  },
+  {
+    "date": "2026-05-29",
+    "base": "USD",
+    "quote": "ALL",
+    "rate": 81.92
+  },
+  {
+    "date": "2026-05-30",
+    "base": "USD",
+    "quote": "AMD",
+    "rate": 367.88
+  },
+  {
+    "date": "2026-05-30",
+    "base": "USD",
+    "quote": "ANG",
+    "rate": 1.79
+  },
+  "..."
+]
+
+
+Filter target currencies with .quotes
+
+/* https://api.frankfurter.dev/v2/rates?quotes=USD,GBP */
+[
+  {
+    "date": "2026-05-30",
+    "base": "EUR",
+    "quote": "GBP",
+    "rate": 0.8671
+  },
+  {
+    "date": "2026-05-30",
+    "base": "EUR",
+    "quote": "USD",
+    "rate": 1.1655
+  }
+]
+
+Historical Rates
+Look up rates for a specific date.
+
+/* https://api.frankfurter.dev/v2/rates?date=1999-01-04 */
+[
+  {
+    "date": "1999-01-04",
+    "base": "EUR",
+    "quote": "AED",
+    "rate": 4.314
+  },
+  {
+    "date": "1999-01-04",
+    "base": "EUR",
+    "quote": "AFN",
+    "rate": 5580
+  },
+  {
+    "date": "1999-01-04",
+    "base": "EUR",
+    "quote": "ALL",
+    "rate": 162.22
+  },
+  {
+    "date": "1999-01-04",
+    "base": "EUR",
+    "quote": "AMD",
+    "rate": 610.87
+  },
+  {
+    "date": "1999-01-04",
+    "base": "EUR",
+    "quote": "ANG",
+    "rate": 2.1027
+  },
+  "..."
+]
+
+
+Time Series
+Fetch rates over a period with and .fromto
+
+/* https://api.frankfurter.dev/v2/rates?from=2026-01-01&quotes=USD */
+[
+  {
+    "date": "2026-01-01",
+    "base": "EUR",
+    "quote": "USD",
+    "rate": 1.1751
+  },
+  {
+    "date": "2026-01-02",
+    "base": "EUR",
+    "quote": "USD",
+    "rate": 1.1743
+  },
+  {
+    "date": "2026-01-03",
+    "base": "EUR",
+    "quote": "USD",
+    "rate": 1.174
+  },
+  {
+    "date": "2026-01-04",
+    "base": "EUR",
+    "quote": "USD",
+    "rate": 1.1738
+  },
+  {
+    "date": "2026-01-05",
+    "base": "EUR",
+    "quote": "USD",
+    "rate": 1.1707
+  },
+  "..."
+]
+
+
+Tip: Narrowing down currencies keeps responses small. For large date ranges, request NDJSON to stream results line by line.
+
+Grouping
+Downsample a time series with . Supports and .groupweekmonth
+
+/* https://api.frankfurter.dev/v2/rates?from=2026-01-01&group=month */
+[
+  {
+    "date": "2026-01-01",
+    "base": "EUR",
+    "quote": "AED",
+    "rate": 4.311
+  },
+  {
+    "date": "2026-01-01",
+    "base": "EUR",
+    "quote": "AFN",
+    "rate": 77.94
+  },
+  {
+    "date": "2026-01-01",
+    "base": "EUR",
+    "quote": "ALL",
+    "rate": 96.51
+  },
+  {
+    "date": "2026-01-01",
+    "base": "EUR",
+    "quote": "AMD",
+    "rate": 446.39
+  },
+  {
+    "date": "2026-01-01",
+    "base": "EUR",
+    "quote": "ANG",
+    "rate": 2.1012
+  },
+  "..."
+]
+
+
+Filtering by Provider
+Scope to specific providers with .providers
+
+/* https://api.frankfurter.dev/v2/rates?providers=ECB */
+[
+  {
+    "date": "2026-05-29",
+    "base": "EUR",
+    "quote": "AUD",
+    "rate": 1.6238
+  },
+  {
+    "date": "2026-05-29",
+    "base": "EUR",
+    "quote": "BRL",
+    "rate": 5.8747
+  },
+  {
+    "date": "2026-05-29",
+    "base": "EUR",
+    "quote": "CAD",
+    "rate": 1.6074
+  },
+  {
+    "date": "2026-05-29",
+    "base": "EUR",
+    "quote": "CHF",
+    "rate": 0.9111
+  },
+  {
+    "date": "2026-05-29",
+    "base": "EUR",
+    "quote": "CNY",
+    "rate": 7.8793
+  },
+  "..."
+]
+
+
+By default, rates are blended across all providers. Use to retrieve rates from a specific source. providers
+
+Provider Attribution
+Add to see which providers contributed to each blended rate. expand=providers
+
+/* https://api.frankfurter.dev/v2/rates?expand=providers */
+[
+  {
+    "date": "2026-05-30",
+    "base": "EUR",
+    "quote": "AED",
+    "rate": 4.2802,
+    "providers": [
+      {
+        "key": "BAM",
+        "rate": 4.2809,
+        "excluded": true
+      },
+      {
+        "key": "BCEAO",
+        "rate": 4.2735,
+        "excluded": true
+      },
+      {
+        "key": "BCP",
+        "rate": 4.2808,
+        "excluded": true
+      },
+      {
+        "key": "BCT",
+        "rate": 4.2444,
+        "excluded": true
+      },
+      {
+        "key": "BDI",
+        "rate": 4.2802,
+        "excluded": true
+      },
+      "..."
+    ]
+  },
+  {
+    "date": "2026-05-30",
+    "base": "EUR",
+    "quote": "AFN",
+    "rate": 74.446,
+    "providers": [
+      {
+        "key": "BDI",
+        "rate": 74.485
+      },
+      {
+        "key": "CBU",
+        "rate": 74.263
+      },
+      {
+        "key": "DAB",
+        "rate": 74.405
+      },
+      {
+        "key": "LB",
+        "rate": 74.355
+      },
+      {
+        "key": "NBKR",
+        "rate": 74.487
+      },
+      "..."
+    ]
+  },
+  {
+    "date": "2026-05-29",
+    "base": "EUR",
+    "quote": "ALL",
+    "rate": 95.47,
+    "providers": [
+      {
+        "key": "BDI",
+        "rate": 95.56
+      },
+      {
+        "key": "BNA",
+        "rate": 95.03
+      },
+      {
+        "key": "LB",
+        "rate": 95.54
+      },
+      {
+        "key": "NBM",
+        "rate": 95.82
+      },
+      {
+        "key": "NBP",
+        "rate": 95.41
+      }
+    ]
+  },
+  {
+    "date": "2026-05-30",
+    "base": "EUR",
+    "quote": "AMD",
+    "rate": 428.75,
+    "providers": [
+      {
+        "key": "BDI",
+        "rate": 429.06
+      },
+      {
+        "key": "CBA",
+        "rate": 429.1
+      },
+      {
+        "key": "CBR",
+        "rate": 428.95
+      },
+      {
+        "key": "CBU",
+        "rate": 428.8
+      },
+      {
+        "key": "LB",
+        "rate": 428.1
+      },
+      "..."
+    ]
+  },
+  {
+    "date": "2026-05-30",
+    "base": "EUR",
+    "quote": "ANG",
+    "rate": 2.0862
+  },
+  "..."
+]
+
+
+Each row gains a array of contributing provider keys. Pegged-currency rows omit the field. Those rates come from the peg, not provider data. providers
+
+CSV Output
+Rates are also available as CSV. Append to the path or set the header to . .csvAccepttext/csv
+
+/* https://api.frankfurter.dev/v2/rates.csv */
+date,base,quote,rate
+2026-05-30,EUR,AED,4.2802
+2026-05-30,EUR,AFN,74.446
+2026-05-29,EUR,ALL,95.47
+2026-05-30,EUR,AMD,428.75
+...
+
+
+NDJSON Output
+For large responses, request NDJSON (newline-delimited JSON) by setting the header to . Each line is one independent JSON object, useful for streaming large time series without buffering the entire response. Acceptapplication/x-ndjson
+
+/* https://api.frankfurter.dev/v2/rates?from=2026-01-01 */
+{"date":"2025-12-31","base":"EUR","quote":"AOA","rate":1077.01}
+{"date":"2025-12-31","base":"EUR","quote":"ARS","rate":1708.73}
+{"date":"2025-12-31","base":"EUR","quote":"AWG","rate":2.1106}
+{"date":"2025-12-31","base":"EUR","quote":"BBD","rate":2.3885}
+{"date":"2025-12-31","base":"EUR","quote":"BGN","rate":1.9549}
+...
+
+
+Rate
+Get the rate for a single currency pair. Optionally add or . dateproviders
+
+/* https://api.frankfurter.dev/v2/rate/EUR/USD */
+{
+  "date": "2026-05-30",
+  "base": "EUR",
+  "quote": "USD",
+  "rate": 1.1655
+}
+
+Currencies
+Get available currencies with provider coverage.
+
+/* https://api.frankfurter.dev/v2/currencies */
+[
+  {
+    "iso_code": "AED",
+    "iso_numeric": "784",
+    "name": "United Arab Emirates Dirham",
+    "symbol": "د.إ",
+    "start_date": "1996-04-11",
+    "...": "..."
+  },
+  {
+    "iso_code": "AFN",
+    "iso_numeric": "971",
+    "name": "Afghan Afghani",
+    "symbol": "؋",
+    "start_date": "1999-01-04",
+    "...": "..."
+  },
+  {
+    "iso_code": "ALL",
+    "iso_numeric": "008",
+    "name": "Albanian Lek",
+    "symbol": "L",
+    "start_date": "1998-07-07",
+    "...": "..."
+  },
+  {
+    "iso_code": "AMD",
+    "iso_numeric": "051",
+    "name": "Armenian Dram",
+    "symbol": "֏",
+    "start_date": "1994-03-31",
+    "...": "..."
+  },
+  {
+    "iso_code": "ANG",
+    "iso_numeric": "532",
+    "name": "Netherlands Antillean Gulden",
+    "symbol": "ƒ",
+    "start_date": "1948-06-21",
+    "...": "..."
+  },
+  "..."
+]
+
+
+Include legacy currencies with .scope
+
+/* https://api.frankfurter.dev/v2/currencies?scope=all */
+[
+  {
+    "iso_code": "AED",
+    "iso_numeric": "784",
+    "name": "United Arab Emirates Dirham",
+    "symbol": "د.إ",
+    "start_date": "1996-04-11",
+    "...": "..."
+  },
+  {
+    "iso_code": "AFN",
+    "iso_numeric": "971",
+    "name": "Afghan Afghani",
+    "symbol": "؋",
+    "start_date": "1999-01-04",
+    "...": "..."
+  },
+  {
+    "iso_code": "ALL",
+    "iso_numeric": "008",
+    "name": "Albanian Lek",
+    "symbol": "L",
+    "start_date": "1998-07-07",
+    "...": "..."
+  },
+  {
+    "iso_code": "AMD",
+    "iso_numeric": "051",
+    "name": "Armenian Dram",
+    "symbol": "֏",
+    "start_date": "1994-03-31",
+    "...": "..."
+  },
+  {
+    "iso_code": "ANG",
+    "iso_numeric": "532",
+    "name": "Netherlands Antillean Gulden",
+    "symbol": "ƒ",
+    "start_date": "1971-12-18",
+    "...": "..."
+  },
+  "..."
+]
+
+
+Currency
+Get details and provider coverage for a single currency.
+
+/* https://api.frankfurter.dev/v2/currency/EUR */
+{
+  "iso_code": "EUR",
+  "iso_numeric": "978",
+  "name": "Euro",
+  "symbol": "€",
+  "start_date": "1993-01-04",
+  "...": "..."
+}
+
+
+Providers
+List the data sources behind the API.
+
+/* https://api.frankfurter.dev/v2/providers */
+[
+  {
+    "key": "AMCM",
+    "name": "Autoridade Monetária de Macau",
+    "country_code": "MO",
+    "rate_type": "interbank middle rate",
+    "pivot_currency": "MOP",
+    "...": "..."
+  },
+  {
+    "key": "BAM",
+    "name": "Bank Al-Maghrib",
+    "country_code": "MA",
+    "rate_type": "transfer rate",
+    "pivot_currency": "MAD",
+    "...": "..."
+  },
+  {
+    "key": "BANREP",
+    "name": "Banco de la República",
+    "country_code": "CO",
+    "rate_type": "representative market",
+    "pivot_currency": "COP",
+    "...": "..."
+  },
+  {
+    "key": "BANXICO",
+    "name": "Banco de México",
+    "country_code": "MX",
+    "rate_type": "FIX",
+    "pivot_currency": "MXN",
+    "...": "..."
+  },
+  {
+    "key": "BBK",
+    "name": "Deutsche Bundesbank",
+    "country_code": "DE",
+    "rate_type": "historical Frankfurt fixing",
+    "pivot_currency": "DEM",
+    "...": "..."
+  },
+  "..."
+]
+
+
+Conversion
+There is no conversion endpoint. Fetch the rate and convert in a few lines of code.
+
+function convert(base, quote, amount) {
+  const api = "https://api.frankfurter.dev";
+  return fetch(`${api}/v2/rate/${base}/${quote}`)
+    .then((r) => r.json())
+    .then((d) => (amount * d.rate).toFixed(2));
+}
+
+convert("EUR", "USD", 10).then((result) =>
+  alert(`10 EUR = ${result} USD`)
+);
+
+
+Errors
+The API returns standard HTTP status codes with a JSON body.
+
+{
+  "message": "Could not find currency ABC"
+}
+400
+Invalid parameter or malformed request.
+404
+Currency, rate, or resource not found.
+422
+Request understood but cannot be processed.
+Self-Hosting
+You can self-host with Docker. See the deploy guide for production setup and API key configuration.
+
+FAQ
+Is the API free for commercial use?
+Yes, absolutely. See each provider's terms for details on the underlying data.
+Does the API have any call limits?
+There are no quotas. Requests are rate-limited to prevent abuse, but there are no monthly or daily caps. For high-volume use, consider caching responses, self-hosting, or querying the datasets directly.
+Does the API support GraphQL?
+No. The REST API is simple enough that GraphQL would add complexity without much benefit. It would also break edge caching, which keeps the API fast. Use query parameters like , , and / to get exactly the data you need. basequotesfromto
+Is the v1 API being retired?
+No. The v1 API will continue to work. See the v1 documentation.
+What is the privacy policy of the API?
+The API itself does not collect personal data. However, the public app runs behind Cloudflare for performance, and Cloudflare will collect some basic information for analytics. This does not apply if you run the API privately.
+Where can I report a bug or ask a question?
+Open an issue to report a bug, request a feature, or suggest a new data source. Use Discussions to ask questions or share a library or tool you built with Frankfurter.
+How accurate are the rates?
+For compliance, filter by a specific provider to get official reference rates. For general use, the default blended rates work well, though the last decimal places may shift as new data comes in.
+Why Frankfurter?
+Because the European Central Bank is in Frankfurt.

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickRate</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup">
+    <header class="popup__header">
+      <h1 class="popup__title">QuickRate</h1>
+    </header>
+
+    <main class="popup__content">
+      <div class="currency-select">
+        <label class="currency-select__label">源货币</label>
+        <select id="sourceCurrency" class="currency-select__dropdown">
+          <option value="USD">USD - 美元</option>
+          <option value="EUR">EUR - 欧元</option>
+          <option value="GBP">GBP - 英镑</option>
+          <option value="JPY">JPY - 日元</option>
+        </select>
+      </div>
+
+      <div class="currency-select">
+        <label class="currency-select__label">目标货币</label>
+        <select id="targetCurrency" class="currency-select__dropdown">
+          <option value="CNY">CNY - 人民币</option>
+          <option value="USD">USD - 美元</option>
+          <option value="EUR">EUR - 欧元</option>
+          <option value="GBP">GBP - 英镑</option>
+          <option value="JPY">JPY - 日元</option>
+        </select>
+      </div>
+
+      <div class="rate-info">
+        <span class="rate-info__label">当前汇率</span>
+        <span id="exchangeRate" class="rate-info__value">加载中...</span>
+      </div>
+
+      <div class="toggle-group">
+        <label class="toggle">
+          <input type="checkbox" id="enableConversion" checked>
+          <span class="toggle__slider"></span>
+        </label>
+        <span class="toggle-group__label">启用转换</span>
+      </div>
+    </main>
+
+    <footer class="popup__footer">
+      <span id="status" class="status">就绪</span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
