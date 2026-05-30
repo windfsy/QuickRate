@@ -90,27 +90,41 @@ export class CurrencyConverter {
     }
 
     // 通过 background script 获取汇率
-    try {
-      const response = await chrome.runtime.sendMessage({
-        action: 'getRate',
-        from,
-        to
-      });
-
-      if (response && response.rate) {
-        // 缓存汇率
-        this.rateCache.set(cacheKey, {
-          rate: response.rate,
-          timestamp: Date.now()
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        const response = await chrome.runtime.sendMessage({
+          action: 'getRate',
+          from,
+          to
         });
 
-        return response.rate;
+        if (response && response.rate) {
+          // 缓存汇率
+          this.rateCache.set(cacheKey, {
+            rate: response.rate,
+            timestamp: Date.now()
+          });
+
+          return response.rate;
+        }
+
+        // 如果响应无效，减少重试次数
+        retries--;
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        console.error(`获取汇率失败 (剩余重试: ${retries}):`, error);
+        retries--;
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
-    } catch (error) {
-      console.error('获取汇率失败:', error);
     }
 
-    // 返回默认汇率 (用于测试)
+    // 所有重试都失败，返回默认汇率
+    console.warn(`使用默认汇率: ${from} -> ${to}`);
     return this.getDefaultRate(from, to);
   }
 

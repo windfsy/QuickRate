@@ -52,45 +52,62 @@ export class FrankfurterAPI {
    */
   async fetchRate(from, to) {
     const url = `${this.baseUrl}/latest?from=${from}&to=${to}`;
+    const cacheKey = `${from}_${to}`;
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.REQUEST_TIMEOUT);
+    let retries = 3;
+    let lastError;
 
-      const response = await fetch(url, {
-        signal: controller.signal
-      });
+    while (retries > 0) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.REQUEST_TIMEOUT);
 
-      clearTimeout(timeoutId);
+        const response = await fetch(url, {
+          signal: controller.signal
+        });
 
-      if (!response.ok) {
-        throw new Error(`API 请求失败: ${response.status}`);
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`API 请求失败: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.rates || !data.rates[to]) {
+          throw new Error('无效的汇率数据');
+        }
+
+        const rateData = {
+          from,
+          to,
+          rate: data.rates[to],
+          timestamp: Date.now(),
+          date: data.date
+        };
+
+        // 缓存结果
+        this.setCache(cacheKey, rateData);
+
+        return rateData;
+      } catch (error) {
+        lastError = error;
+        retries--;
+
+        if (error.name === 'AbortError') {
+          console.warn(`API 请求超时 (剩余重试: ${retries})`);
+        } else {
+          console.error(`API 请求失败 (剩余重试: ${retries}):`, error);
+        }
+
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
-
-      const data = await response.json();
-
-      if (!data.rates || !data.rates[to]) {
-        throw new Error('无效的汇率数据');
-      }
-
-      const rateData = {
-        from,
-        to,
-        rate: data.rates[to],
-        timestamp: Date.now(),
-        date: data.date
-      };
-
-      // 缓存结果
-      this.setCache(cacheKey, rateData);
-
-      return rateData;
-    } catch (error) {
-      if (error.name === 'AbortError') {
-        throw new Error('API 请求超时');
-      }
-      throw error;
     }
+
+    // 所有重试都失败
+    throw lastError || new Error('API 请求失败');
   }
 
   /**

@@ -26,11 +26,21 @@ class QuickRate {
 
       // 处理页面
       if (this.config.enabled) {
-        await this.replacer.processPage();
+        // 使用 requestIdleCallback 优化性能
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(async () => {
+            await this.replacer.processPage();
+          }, { timeout: 2000 });
+        } else {
+          await this.replacer.processPage();
+        }
       }
 
       // 监听消息
       this.setupMessageListener();
+
+      // 监听页面可见性变化
+      this.setupVisibilityListener();
 
       console.log('QuickRate 初始化完成');
     } catch (error) {
@@ -102,6 +112,21 @@ class QuickRate {
     };
 
     this.replacer.updateConfig(this.config);
+  }
+
+  /**
+   * 设置页面可见性监听
+   */
+  setupVisibilityListener() {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this.config.enabled) {
+        // 页面重新可见时，检查是否需要重新处理
+        const stats = this.replacer.getStats();
+        if (stats.convertedCount === 0) {
+          this.replacer.reprocess();
+        }
+      }
+    });
   }
 
   /**

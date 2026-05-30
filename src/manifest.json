@@ -5,7 +5,8 @@
   "description": "自动识别网页金额并转换为目标货币",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "alarms"
   ],
   "host_permissions": [
     "https://api.frankfurter.app/*"
@@ -23,7 +24,8 @@
       "matches": ["<all_urls>"],
       "js": ["content.js"],
       "css": [],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "background": {
@@ -33,5 +35,8 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
   }
 }

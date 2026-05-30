@@ -3,6 +3,7 @@
 import { AmountDetector } from './detector.js';
 import { CurrencyConverter } from './converter.js';
 import { SKIP_TAGS, CSS_CLASSES } from '../shared/constants.js';
+import { debounce, throttle } from '../shared/utils.js';
 
 /**
  * DOM 替换器
@@ -15,6 +16,14 @@ export class DomReplacer {
     this.config = null;
     this.isProcessing = false;
     this.processingQueue = [];
+    this.stats = {
+      convertedCount: 0,
+      startTime: null
+    };
+
+    // 绑定防抖和节流方法
+    this.debouncedProcessQueue = debounce(this.processQueue.bind(this), 100);
+    this.throttledProcessPage = throttle(this.processPage.bind(this), 500);
   }
 
   /**
@@ -87,9 +96,12 @@ export class DomReplacer {
 
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
-          this.processNode(node);
+          this.processingQueue.push(node);
         });
       });
+
+      // 使用防抖处理队列
+      this.debouncedProcessQueue();
     });
 
     this.observer.observe(document.body, {
@@ -106,6 +118,7 @@ export class DomReplacer {
       return;
     }
 
+    this.stats.startTime = Date.now();
     await this.processNode(document.body);
   }
 
@@ -192,6 +205,9 @@ export class DomReplacer {
               span.dataset.rate = result.rate;
               span.textContent = result.formatted;
               span.title = `原始: ${amount.raw}\n汇率: 1 ${amount.currency} = ${result.rate} ${this.config.targetCurrency}`;
+
+              // 更新统计
+              this.stats.convertedCount++;
             }
           })
           .catch(error => {
@@ -225,10 +241,28 @@ export class DomReplacer {
     this.config = config;
 
     if (config.enabled) {
-      this.processPage();
+      this.throttledProcessPage();
     } else {
       this.restoreOriginal();
     }
+  }
+
+  /**
+   * 处理队列
+   */
+  async processQueue() {
+    if (this.isProcessing || this.processingQueue.length === 0) {
+      return;
+    }
+
+    this.isProcessing = true;
+
+    while (this.processingQueue.length > 0) {
+      const node = this.processingQueue.shift();
+      await this.processNode(node);
+    }
+
+    this.isProcessing = false;
   }
 
   /**
@@ -274,8 +308,10 @@ export class DomReplacer {
   getStats() {
     const convertedElements = document.querySelectorAll(`.${CSS_CLASSES.CONVERTED}`);
     return {
-      convertedCount: convertedElements.length,
-      processedNodes: this.processedNodes.constructor.name === 'WeakSet' ? 'N/A' : this.processedNodes.size
+      convertedCount: convertedElements.length || this.stats.convertedCount,
+      processedNodes: this.processedNodes.constructor.name === 'WeakSet' ? 'N/A' : this.processedNodes.size,
+      startTime: this.stats.startTime,
+      duration: this.stats.startTime ? Date.now() - this.stats.startTime : 0
     };
   }
 }
