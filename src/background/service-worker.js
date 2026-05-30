@@ -1,90 +1,150 @@
 // service-worker.js - 后台服务工作者
 
-const API_BASE_URL = 'https://api.frankfurter.app';
-const CACHE_DURATION = 60 * 60 * 1000; // 1小时
+import { FrankfurterAPI } from './api.js';
 
 /**
- * 获取汇率
- * @param {string} from - 源货币代码
- * @param {string} to - 目标货币代码
- * @returns {Promise<Object>} 汇率数据
+ * 后台服务管理器
  */
-async function getExchangeRate(from, to) {
-  const cacheKey = `rate_${from}_${to}`;
-
-  // 检查缓存
-  const cached = await getCachedRate(cacheKey);
-  if (cached) {
-    return cached;
+class BackgroundService {
+  constructor() {
+    this.api = new FrankfurterAPI();
+    this.setupMessageListeners();
+    this.setupAlarms();
   }
 
-  // 调用 API
-  try {
-    const response = await fetch(`${API_BASE_URL}/latest?from=${from}&to=${to}`);
-    const data = await response.json();
+  /**
+   * 设置消息监听
+   */
+  setupMessageListeners() {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      switch (request.action) {
+        case 'getRate':
+          this.handleGetRate(request.from, request.to)
+            .then(sendResponse)
+            .catch(error => sendResponse({ error: error.message }));
+          return true;
 
-    if (data.rates && data.rates[to]) {
-      const rateData = {
-        from,
-        to,
-        rate: data.rates[to],
-        timestamp: Date.now(),
-        cached: false
-      };
+        case 'getCurrencies':
+          this.handleGetCurrencies()
+            .then(sendResponse)
+            .catch(error => sendResponse({ error: error.message }));
+          return true;
 
-      // 缓存结果
-      await cacheRate(cacheKey, rateData);
+        case 'getHistorical':
+          this.handleGetHistorical(request.from, request.to, request.start, request.end)
+            .then(sendResponse)
+            .catch(error => sendResponse({ error: error.message }));
+          return true;
 
-      return rateData;
-    }
-  } catch (error) {
-    console.error('获取汇率失败:', error);
+        case 'clearCache':
+          this.api.clearCache();
+          sendResponse({ success: true });
+          break;
+
+        case 'getCacheStats':
+          sendResponse(this.api.getCacheStats());
+          break;
+
+        default:
+          sendResponse({ error: '未知操作' });
+      }
+
+      return true;
+    });
   }
 
-  return null;
-}
+  /**
+   * 设置定时任务
+   */
+  setupAlarms() {
+    // 每小时更新一次汇率缓存
+    chrome.alarms.create('updateRates', {
+      periodInMinutes: 60
+    });
 
-/**
- * 获取缓存的汇率
- * @param {string} key - 缓存键
- * @returns {Promise<Object|null>} 缓存的汇率数据
- */
-async function getCachedRate(key) {
-  return new Promise((resolve) => {
-    chrome.storage.local.get([key], (result) => {
-      if (result[key]) {
-        const data = result[key];
-        const age = Date.now() - data.timestamp;
-
-        if (age < CACHE_DURATION) {
-          resolve({ ...data, cached: true });
-        } else {
-          resolve(null);
-        }
-      } else {
-        resolve(null);
+    chrome.alarms.onAlarm.addListener((alarm) => {
+      if (alarm.name === 'updateRates') {
+        this.updateCachedRates();
       }
     });
-  });
-}
-
-/**
- * 缓存汇率数据
- * @param {string} key - 缓存键
- * @param {Object} data - 汇率数据
- */
-async function cacheRate(key, data) {
-  return new Promise((resolve) => {
-    chrome.storage.local.set({ [key]: data }, resolve);
-  });
-}
-
-// 监听消息
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'getRate') {
-    getExchangeRate(request.from, request.to).then(sendResponse);
-    return true; // 保持消息通道开放
   }
-});
+
+  /**
+   * 处理获取汇率请求
+   * @param {string} from - 源货币
+   * @param {string} to - 目标货币
+   * @returns {Promise<Object>} 汇率数据
+   */
+  async handleGetRate(from, to) {
+    try {
+      const rateData = await this.api.getRate(from, to);
+      return rateData;
+    } catch (error) {
+      console.error('获取汇率失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 处理获取货币列表请求
+   * @returns {Promise<Object>} 货币列表
+   */
+  async handleGetCurrencies() {
+    try {
+      const currencies = await this.api.getCurrencies();
+      return currencies;
+    } catch (error) {
+      console.error('获取货币列表失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 处理获取历史汇率请求
+   * @param {string} from - 源货币
+   * @param {string} to - 目标货币
+   * @param {string} start - 开始日期
+   * @param {string} end - 结束日期
+   * @returns {Promise<Object>} 历史汇率数据
+   */
+  async handleGetHistorical(from, to, start, end) {
+    try {
+      const historical = await this.api.getHistoricalRates(from, to, start, end);
+      return historical;
+    } catch (error) {
+      console.error('获取历史汇率失败:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 更新缓存的汇率
+   */
+  async updateCachedRates() {
+    try {
+      // 获取用户配置的货币对
+      const config = await this.getConfig();
+      if (config.sourceCurrency && config.targetCurrency) {
+        await this.api.getRate(config.sourceCurrency, config.targetCurrency);
+        console.log('汇率缓存已更新');
+      }
+    } catch (error) {
+      console.error('更新汇率缓存失败:', error);
+    }
+  }
+
+  /**
+   * 获取用户配置
+   * @returns {Promise<Object>} 用户配置
+   */
+  async getConfig() {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['sourceCurrency', 'targetCurrency'], resolve);
+    });
+  }
+}
+
+// 启动后台服务
+const backgroundService = new BackgroundService();
 
 console.log('QuickRate background service worker loaded');

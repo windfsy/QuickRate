@@ -36,5 +36,8 @@ module.exports = {
   ],
   optimization: {
     splitChunks: false
+  },
+  resolve: {
+    extensions: ['.js']
   }
 };
