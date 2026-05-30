@@ -400,9 +400,9 @@ export class DomReplacer {
    * 获取统计信息
    */
   getStats() {
-    const convertedElements = document.querySelectorAll(`.${CSS_CLASSES.CONVERTED}`);
+    // 直接使用计数器，不依赖 DOM 查询
     return {
-      convertedCount: convertedElements.length || this.stats.convertedCount,
+      convertedCount: this.stats.convertedCount,
       startTime: this.stats.startTime,
       duration: this.stats.startTime ? Date.now() - this.stats.startTime : 0
     };
