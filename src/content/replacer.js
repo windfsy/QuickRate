@@ -82,26 +82,38 @@ export class DomReplacer {
       this.observer.disconnect();
     }
 
+    // 用于批量处理的缓冲区和定时器
+    let pendingNodes = [];
+    let debounceTimer = null;
+
     this.observer = new MutationObserver((mutations) => {
       if (!this.config || !this.config.enabled || this.isProcessing) {
         return;
       }
 
       // 收集需要处理的节点，过滤掉插件自身创建的节点
-      const nodesToProcess = [];
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
           // 跳过插件自己创建的元素
           if (this.isQuickRateNode(node)) {
             continue;
           }
-          nodesToProcess.push(node);
+          pendingNodes.push(node);
         }
       }
 
-      if (nodesToProcess.length > 0) {
-        this.processNodes(nodesToProcess);
+      // 使用防抖批量处理，避免频繁触发
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
       }
+      debounceTimer = setTimeout(() => {
+        const nodes = [...pendingNodes];
+        pendingNodes = [];
+        debounceTimer = null;
+        if (nodes.length > 0) {
+          this.processNodes(nodes);
+        }
+      }, 300);
     });
 
     this.observer.observe(document.body, {

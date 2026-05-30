@@ -55,9 +55,30 @@ class QuickRate {
       return;
     }
 
+    // 等待 React/Vue 等框架完成 hydration
+    await this.waitForFrameworkReady();
+
     console.log('[QuickRate] 开始处理页面...');
     await this.replacer.processPage();
     console.log('[QuickRate] 页面处理完成');
+  }
+
+  /**
+   * 等待前端框架就绪
+   * 避免在 React hydration 期间修改 DOM 导致报错
+   */
+  async waitForFrameworkReady() {
+    // 等待页面完全加载
+    if (document.readyState !== 'complete') {
+      await new Promise(resolve => {
+        window.addEventListener('load', resolve, { once: true });
+      });
+    }
+
+    // 额外延迟，确保 React/Vue hydration 完成
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    console.log('[QuickRate] 框架就绪');
   }
 
   /**
