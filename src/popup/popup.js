@@ -22,7 +22,6 @@ class PopupController {
     this.bindElements();
     this.loadConfig();
     this.setupEventListeners();
-    this.updateStatus('就绪');
   }
 
   /**
@@ -33,6 +32,7 @@ class PopupController {
       sourceCurrency: document.getElementById('sourceCurrency'),
       targetCurrency: document.getElementById('targetCurrency'),
       exchangeRate: document.getElementById('exchangeRate'),
+      rateTime: document.getElementById('rateTime'),
       enableConversion: document.getElementById('enableConversion'),
       showOriginal: document.getElementById('showOriginal'),
       status: document.getElementById('status'),
@@ -64,7 +64,7 @@ class PopupController {
       this.updateStats();
     } catch (error) {
       console.error('加载配置失败:', error);
-      this.updateStatus('加载配置失败');
+      this.updateStatus('Load failed');
     }
   }
 
@@ -120,7 +120,7 @@ class PopupController {
         this.config.enabled = this.elements.enableConversion.checked;
         this.saveConfig();
         this.notifyContentScript();
-        this.updateStatus(this.config.enabled ? '转换已启用' : '转换已禁用');
+        this.updateStatus(this.config.enabled ? 'Enabled' : 'Disabled');
       });
     }
 
@@ -166,7 +166,7 @@ class PopupController {
     const { sourceCurrency, targetCurrency } = this.config;
 
     if (this.elements.exchangeRate) {
-      this.elements.exchangeRate.textContent = '加载中...';
+      this.elements.exchangeRate.textContent = '...';
     }
 
     try {
@@ -177,29 +177,27 @@ class PopupController {
       });
 
       if (response && response.rate) {
-        const rateText = `1 ${sourceCurrency} = ${response.rate.toFixed(4)} ${targetCurrency}`;
         if (this.elements.exchangeRate) {
-          this.elements.exchangeRate.textContent = rateText;
+          this.elements.exchangeRate.textContent = `1 ${sourceCurrency} = ${response.rate.toFixed(4)} ${targetCurrency}`;
         }
 
-        // 显示缓存状态
-        if (response.cached) {
-          this.updateStatus('使用缓存汇率');
-        } else {
-          this.updateStatus('汇率已更新');
+        if (this.elements.rateTime) {
+          this.elements.rateTime.textContent = response.cached ? 'Cached' : 'Just now';
         }
+
+        this.updateStatus('Ready');
       } else {
         if (this.elements.exchangeRate) {
-          this.elements.exchangeRate.textContent = '获取失败';
+          this.elements.exchangeRate.textContent = '--';
         }
-        this.updateStatus('获取汇率失败');
+        this.updateStatus('Failed to get rate');
       }
     } catch (error) {
       console.error('获取汇率失败:', error);
       if (this.elements.exchangeRate) {
-        this.elements.exchangeRate.textContent = '网络错误';
+        this.elements.exchangeRate.textContent = '--';
       }
-      this.updateStatus('网络错误');
+      this.updateStatus('Network error');
     }
   }
 
@@ -220,7 +218,7 @@ class PopupController {
     } catch (error) {
       // 忽略错误，可能是页面没有加载 content script
       if (this.elements.convertedCount) {
-        this.elements.convertedCount.textContent = '-';
+        this.elements.convertedCount.textContent = '0';
       }
     }
   }
@@ -229,7 +227,7 @@ class PopupController {
    * 刷新汇率
    */
   async refreshRates() {
-    this.updateStatus('正在刷新汇率...');
+    this.updateStatus('Refreshing...');
     await chrome.runtime.sendMessage({ action: 'clearCache' });
     await this.updateExchangeRate();
   }
@@ -246,7 +244,6 @@ class PopupController {
     this.saveConfig();
     this.updateExchangeRate();
     this.notifyContentScript();
-    this.updateStatus('货币已交换');
   }
 
   /**

@@ -8,99 +8,112 @@
 </head>
 <body>
   <div class="popup">
-    <header class="popup__header">
-      <div class="popup__logo">
-        <span class="popup__icon">💱</span>
-        <h1 class="popup__title">QuickRate</h1>
+    <!-- 头部 -->
+    <header class="header">
+      <div class="header__left">
+        <span class="header__icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+        </span>
+        <span class="header__title">QuickRate</span>
       </div>
-      <button id="refreshBtn" class="popup__refresh-btn" title="刷新汇率">
-        ↻
+      <button id="refreshBtn" class="icon-btn" title="刷新汇率">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
       </button>
     </header>
 
-    <main class="popup__content">
-      <div class="currency-section">
-        <div class="currency-select">
-          <label class="currency-select__label">源货币</label>
-          <select id="sourceCurrency" class="currency-select__dropdown">
-            <option value="USD">🇺🇸 USD - 美元</option>
-            <option value="EUR">🇪🇺 EUR - 欧元</option>
-            <option value="GBP">🇬🇧 GBP - 英镑</option>
-            <option value="JPY">🇯🇵 JPY - 日元</option>
-            <option value="CNY">🇨🇳 CNY - 人民币</option>
-            <option value="KRW">🇰🇷 KRW - 韩元</option>
-            <option value="INR">🇮🇳 INR - 印度卢比</option>
-            <option value="RUB">🇷🇺 RUB - 卢布</option>
-            <option value="BRL">🇧🇷 BRL - 雷亚尔</option>
-            <option value="AUD">🇦🇺 AUD - 澳元</option>
-            <option value="CAD">🇨🇦 CAD - 加元</option>
-            <option value="CHF">🇨🇭 CHF - 瑞士法郎</option>
-          </select>
-        </div>
-
-        <button id="swapBtn" class="swap-btn" title="交换货币">
-          ⇅
-        </button>
-
-        <div class="currency-select">
-          <label class="currency-select__label">目标货币</label>
-          <select id="targetCurrency" class="currency-select__dropdown">
-            <option value="CNY">🇨🇳 CNY - 人民币</option>
-            <option value="USD">🇺🇸 USD - 美元</option>
-            <option value="EUR">🇪🇺 EUR - 欧元</option>
-            <option value="GBP">🇬🇧 GBP - 英镑</option>
-            <option value="JPY">🇯🇵 JPY - 日元</option>
-            <option value="KRW">🇰🇷 KRW - 韩元</option>
-            <option value="INR">🇮🇳 INR - 印度卢比</option>
-            <option value="RUB">🇷🇺 RUB - 卢布</option>
-            <option value="BRL">🇧🇷 BRL - 雷亚尔</option>
-            <option value="AUD">🇦🇺 AUD - 澳元</option>
-            <option value="CAD">🇨🇦 CAD - 加元</option>
-            <option value="CHF">🇨🇭 CHF - 瑞士法郎</option>
+    <!-- 货币选择 -->
+    <section class="currency-section">
+      <div class="select-group">
+        <label class="select-label">From</label>
+        <div class="select-wrapper">
+          <select id="sourceCurrency" class="select">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+            <option value="JPY">JPY</option>
+            <option value="CNY">CNY</option>
+            <option value="KRW">KRW</option>
+            <option value="INR">INR</option>
+            <option value="RUB">RUB</option>
+            <option value="BRL">BRL</option>
+            <option value="AUD">AUD</option>
+            <option value="CAD">CAD</option>
+            <option value="CHF">CHF</option>
           </select>
         </div>
       </div>
 
-      <div class="rate-info">
-        <div class="rate-info__header">
-          <span class="rate-info__label">当前汇率</span>
-          <span id="rateStatus" class="rate-info__status">●</span>
-        </div>
-        <span id="exchangeRate" class="rate-info__value">加载中...</span>
-      </div>
+      <button id="swapBtn" class="swap-btn" title="交换">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="7 16 3 12 7 8"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <polyline points="17 8 21 12 17 16"/>
+        </svg>
+      </button>
 
-      <div class="toggle-section">
-        <div class="toggle-group">
-          <label class="toggle">
-            <input type="checkbox" id="enableConversion" checked>
-            <span class="toggle__slider"></span>
-          </label>
-          <span class="toggle-group__label">启用转换</span>
-        </div>
-
-        <div class="toggle-group">
-          <label class="toggle">
-            <input type="checkbox" id="showOriginal" checked>
-            <span class="toggle__slider"></span>
-          </label>
-          <span class="toggle-group__label">显示原金额</span>
-        </div>
-      </div>
-
-      <div class="stats-section">
-        <div class="stat-item">
-          <span class="stat-item__label">已转换</span>
-          <span id="convertedCount" class="stat-item__value">0</span>
-          <span class="stat-item__unit">个金额</span>
+      <div class="select-group">
+        <label class="select-label">To</label>
+        <div class="select-wrapper">
+          <select id="targetCurrency" class="select">
+            <option value="CNY">CNY</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+            <option value="JPY">JPY</option>
+            <option value="KRW">KRW</option>
+            <option value="INR">INR</option>
+            <option value="RUB">RUB</option>
+            <option value="BRL">BRL</option>
+            <option value="AUD">AUD</option>
+            <option value="CAD">CAD</option>
+            <option value="CHF">CHF</option>
+          </select>
         </div>
       </div>
-    </main>
+    </section>
 
-    <footer class="popup__footer">
-      <div class="status-bar">
-        <span id="status" class="status">就绪</span>
-        <span class="version">v1.0.0</span>
+    <!-- 汇率显示 -->
+    <section class="rate-card">
+      <div class="rate-card__label">Exchange Rate</div>
+      <div id="exchangeRate" class="rate-card__value">--</div>
+      <div id="rateTime" class="rate-card__time">Updated just now</div>
+    </section>
+
+    <!-- 开关 -->
+    <section class="controls">
+      <div class="control-item">
+        <span class="control-label">Enable conversion</span>
+        <label class="switch">
+          <input type="checkbox" id="enableConversion" checked>
+          <span class="switch__track"></span>
+        </label>
       </div>
+      <div class="control-item">
+        <span class="control-label">Show original</span>
+        <label class="switch">
+          <input type="checkbox" id="showOriginal" checked>
+          <span class="switch__track"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- 统计 -->
+    <section class="stats">
+      <div class="stats__item">
+        <span id="convertedCount" class="stats__number">0</span>
+        <span class="stats__label">converted</span>
+      </div>
+    </section>
+
+    <!-- 底部 -->
+    <footer class="footer">
+      <span id="status" class="footer__status">Ready</span>
     </footer>
   </div>
 
