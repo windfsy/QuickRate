@@ -66,7 +66,7 @@ export function initLocale(preferredLang) {
   currentLocale = matchLocale(lang);
   messages = locales[currentLocale] || zhCN;
 
-  console.log(`[i18n] Language: ${currentLocale} (browser: ${browserLang})`);
+  // locale initialized: currentLocale
 }
 
 /**
@@ -92,7 +92,7 @@ export function t(key, params = {}) {
 
   // 如果不是字符串，返回键名
   if (typeof value !== 'string') {
-    console.warn(`[i18n] Missing key: ${key}`);
+    // missing i18n key: key
     return key;
   }
 

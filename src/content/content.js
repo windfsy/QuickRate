@@ -18,11 +18,8 @@ class QuickRate {
    */
   async init() {
     try {
-      console.log('[QuickRate] 开始初始化...');
-
       // 加载配置
       await this.loadConfig();
-      console.log('[QuickRate] 配置已加载:', this.config);
 
       // 初始化替换器
       this.replacer.init(this.config);
@@ -40,7 +37,6 @@ class QuickRate {
         setTimeout(() => this.startProcessing(), 100);
       }
 
-      console.log('[QuickRate] 初始化完成');
     } catch (error) {
       console.error('[QuickRate] 初始化失败:', error);
     }
@@ -51,16 +47,13 @@ class QuickRate {
    */
   async startProcessing() {
     if (!this.config.enabled) {
-      console.log('[QuickRate] 功能已禁用');
       return;
     }
 
     // 等待 React/Vue 等框架完成 hydration
     await this.waitForFrameworkReady();
 
-    console.log('[QuickRate] 开始处理页面...');
     await this.replacer.processPage();
-    console.log('[QuickRate] 页面处理完成');
   }
 
   /**
@@ -78,7 +71,7 @@ class QuickRate {
     // 额外延迟，确保 React/Vue hydration 完成
     await new Promise(resolve => setTimeout(resolve, 1000));
 
-    console.log('[QuickRate] 框架就绪');
+    // framework ready
   }
 
   /**
@@ -101,7 +94,7 @@ class QuickRate {
    */
   setupMessageListener() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      console.log('[QuickRate] 收到消息:', request.action);
+      // message received: request.action
 
       switch (request.action) {
         case 'configUpdated':
@@ -141,7 +134,7 @@ class QuickRate {
    * @param {Object} config - 新配置
    */
   handleConfigUpdate(config) {
-    console.log('[QuickRate] 配置更新:', config);
+    // config updated
     this.config = {
       ...this.config,
       ...config
@@ -154,13 +147,12 @@ class QuickRate {
    * 销毁
    */
   destroy() {
-    console.log('[QuickRate] 销毁');
+    // destroying
     this.replacer.destroy();
   }
 }
 
 // 启动 QuickRate
-console.log('[QuickRate] 脚本已加载');
 const quickRate = new QuickRate();
 
 // 页面卸载时销毁

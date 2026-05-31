@@ -126,7 +126,7 @@ class BackgroundService {
       const config = await this.getConfig();
       if (config.sourceCurrency && config.targetCurrency) {
         await this.api.getRate(config.sourceCurrency, config.targetCurrency);
-        console.log('汇率缓存已更新');
+        // rate cache updated
       }
     } catch (error) {
       console.error('更新汇率缓存失败:', error);
@@ -147,4 +147,4 @@ class BackgroundService {
 // 启动后台服务
 const backgroundService = new BackgroundService();
 
-console.log('QuickRate background service worker loaded');
+// QuickRate background service worker loaded

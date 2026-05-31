@@ -26,7 +26,8 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: 'src/manifest.json', to: 'manifest.json' },
-        { from: 'public/icons', to: 'icons' }
+        { from: 'public/icons', to: 'icons' },
+        { from: 'src/privacy.html', to: 'privacy.html' }
       ]
     }),
     new MiniCssExtractPlugin({

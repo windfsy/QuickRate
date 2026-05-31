@@ -41,7 +41,7 @@ export const CURRENCY_CODES = {
  * API 配置
  */
 export const API_CONFIG = {
-  BASE_URL: 'https://api.frankfurter.app',
+  BASE_URL: 'https://api.frankfurter.dev',
   CACHE_DURATION: 60 * 60 * 1000, // 1小时
   REQUEST_TIMEOUT: 10000 // 10秒
 };

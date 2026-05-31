@@ -23,12 +23,22 @@ export class AmountDetector {
     const numPattern = '\\d{1,3}(?:[,\\. ]\\d{3})*(?:[,\\.]\\d{1,6})?|\\d+(?:[,\\.]\\d{1,6})';
 
     const patterns = [
-      // 符号前置: $100, €1,000.50, ¥ 100, $0.375
+      // 多字符符号前置: R$100, A$50, C$100, NZ$200
+      {
+        regex: new RegExp(`(R\\$|A\\$|C\\$|NZ\\$)\\s*(${numPattern})`, 'g'),
+        type: 'symbol-prefix'
+      },
+      // 多字符符号后置: 100R$, 50A$
+      {
+        regex: new RegExp(`(${numPattern})\\s*(R\\$|A\\$|C\\$|NZ\\$)`, 'g'),
+        type: 'symbol-suffix'
+      },
+      // 单字符符号前置: $100, €1,000.50, ¥ 100, $0.375
       {
         regex: new RegExp(`([\\$€£¥₩₹₽])\\s*(${numPattern})`, 'g'),
         type: 'symbol-prefix'
       },
-      // 符号后置: 100$, 1,000€
+      // 单字符符号后置: 100$, 1,000€
       {
         regex: new RegExp(`(${numPattern})\\s*([\\$€£¥₩₹₽])`, 'g'),
         type: 'symbol-suffix'
@@ -182,9 +192,11 @@ export class AmountDetector {
    * @returns {boolean} 是否包含货币符号
    */
   static hasCurrencySymbol(text) {
-    const symbols = Object.keys(CURRENCY_SYMBOLS).join('|');
-    const regex = new RegExp(`[${symbols}]`);
-    return regex.test(text);
+    const singleSymbols = ['\\$', '€', '£', '¥', '₩', '₹', '₽'];
+    const multiSymbols = ['R\\$', 'A\\$', 'C\\$', 'NZ\\$'];
+    const singleRegex = new RegExp(`[${singleSymbols.join('')}]`);
+    const multiRegex = new RegExp(multiSymbols.join('|'));
+    return singleRegex.test(text) || multiRegex.test(text);
   }
 
   /**

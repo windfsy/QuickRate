@@ -119,10 +119,8 @@ export class CurrencyConverter {
       }
 
       // 响应无效，使用默认汇率
-      console.warn('API 响应无效，使用默认汇率');
       return this.getDefaultRate(from, to);
     } catch (error) {
-      console.error('获取汇率失败:', error.message);
       return this.getDefaultRate(from, to);
     }
   }

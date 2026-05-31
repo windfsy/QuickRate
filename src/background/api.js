@@ -1,9 +1,10 @@
-// api.js - Frankfurter API 封装
+// api.js - Frankfurter API 封装 (v2)
 
 import { API_CONFIG } from '../shared/constants.js';
 
 /**
- * Frankfurter API 客户端
+ * Frankfurter API 客户端 (v2)
+ * API 文档: https://api.frankfurter.dev/v2
  */
 export class FrankfurterAPI {
   constructor() {
@@ -45,13 +46,13 @@ export class FrankfurterAPI {
   }
 
   /**
-   * 从 API 获取汇率
+   * 从 API 获取汇率 (v2 单货币对端点)
    * @param {string} from - 源货币代码
    * @param {string} to - 目标货币代码
    * @returns {Promise<Object>} 汇率数据
    */
   async fetchRate(from, to) {
-    const url = `${this.baseUrl}/latest?from=${from}&to=${to}`;
+    const url = `${this.baseUrl}/v2/rates?base=${from}&quotes=${to}`;
     const cacheKey = `${from}_${to}`;
 
     let retries = 3;
@@ -74,14 +75,15 @@ export class FrankfurterAPI {
 
         const data = await response.json();
 
-        if (!data.rates || !data.rates[to]) {
+        // v2 响应格式: { date, base, quote, rate }
+        if (typeof data.rate !== 'number') {
           throw new Error('无效的汇率数据');
         }
 
         const rateData = {
           from,
           to,
-          rate: data.rates[to],
+          rate: data.rate,
           timestamp: Date.now(),
           date: data.date
         };
@@ -94,12 +96,6 @@ export class FrankfurterAPI {
         lastError = error;
         retries--;
 
-        if (error.name === 'AbortError') {
-          console.warn(`API 请求超时 (剩余重试: ${retries})`);
-        } else {
-          console.error(`API 请求失败 (剩余重试: ${retries}):`, error);
-        }
-
         if (retries > 0) {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
@@ -111,8 +107,8 @@ export class FrankfurterAPI {
   }
 
   /**
-   * 获取支持的货币列表
-   * @returns {Promise<Object>} 货币列表
+   * 获取支持的货币列表 (v2 端点)
+   * @returns {Promise<Array>} 货币列表
    */
   async getCurrencies() {
     const cacheKey = 'currencies';
@@ -123,7 +119,7 @@ export class FrankfurterAPI {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/currencies`);
+      const response = await fetch(`${this.baseUrl}/v2/currencies`);
       const data = await response.json();
 
       this.setCache(cacheKey, data, 24 * 60 * 60 * 1000); // 缓存24小时
@@ -136,7 +132,7 @@ export class FrankfurterAPI {
   }
 
   /**
-   * 获取历史汇率
+   * 获取历史汇率 (v2 端点)
    * @param {string} from - 源货币代码
    * @param {string} to - 目标货币代码
    * @param {string} startDate - 开始日期 (YYYY-MM-DD)
@@ -144,7 +140,7 @@ export class FrankfurterAPI {
    * @returns {Promise<Object>} 历史汇率数据
    */
   async getHistoricalRates(from, to, startDate, endDate) {
-    const url = `${this.baseUrl}/${startDate}..${endDate}?from=${from}&to=${to}`;
+    const url = `${this.baseUrl}/v2/rates?from=${from}&to=${to}&date=${startDate}..${endDate}`;
 
     try {
       const response = await fetch(url);
