@@ -154,12 +154,12 @@ npm run lint     # 代码检查
 
 ## 📝 API 说明
 
-### Frankfurter API
+### Frankfurter API (v2)
 
-- **基础 URL**: https://api.frankfurter.app
-- **最新汇率**: `/latest?from=USD&to=CNY`
-- **货币列表**: `/currencies`
-- **历史汇率**: `/2024-01-01..2024-01-31?from=USD&to=CNY`
+- **基础 URL**: https://api.frankfurter.dev
+- **最新汇率**: `/v2/rates?base=USD&quotes=CNY`
+- **货币列表**: `/v2/currencies`
+- **历史汇率**: `/v2/rates?from=2024-01-01&to=2024-01-31&base=USD&quotes=CNY`
 
 ### Chrome Storage API
 
