@@ -31,6 +31,9 @@ export default {
   // Stats
   converted: 'converted',
 
+  // Privacy
+  privacyPolicy: 'Privacy Policy',
+
   // Currency names
   currencies: {
     USD: 'US Dollar',

@@ -323,3 +323,22 @@ body {
   font-size: 11px;
   color: var(--on-surface-secondary);
 }
+/* Footer Links */
+.footer__links {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.footer__link {
+  font-size: 11px;
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+.footer__link:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}

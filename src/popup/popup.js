@@ -45,7 +45,8 @@ class PopupController {
       status: document.getElementById('status'),
       convertedCount: document.getElementById('convertedCount'),
       refreshBtn: document.getElementById('refreshBtn'),
-      swapBtn: document.getElementById('swapBtn')
+      swapBtn: document.getElementById('swapBtn'),
+      privacyLink: document.getElementById('privacyLink')
     };
   }
 
@@ -89,7 +90,6 @@ class PopupController {
       this.updateExchangeRate();
       this.updateStats();
     } catch (error) {
-      console.error('加载配置失败:', error);
       this.updateStatus(t('loadFailed'));
     }
   }
@@ -172,6 +172,16 @@ class PopupController {
         this.swapCurrencies();
       });
     }
+
+    // 隐私政策链接
+    if (this.elements.privacyLink) {
+      this.elements.privacyLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        chrome.tabs.create({
+          url: chrome.runtime.getURL('privacy.html')
+        });
+      });
+    }
   }
 
   /**
@@ -181,7 +191,7 @@ class PopupController {
     try {
       await chrome.storage.local.set(this.config);
     } catch (error) {
-      console.error('保存配置失败:', error);
+      // 保存失败
     }
   }
 
@@ -219,13 +229,13 @@ class PopupController {
         this.updateStatus(t('rateFailed'));
       }
     } catch (error) {
-      console.error('获取汇率失败:', error);
       if (this.elements.exchangeRate) {
         this.elements.exchangeRate.textContent = '--';
       }
       this.updateStatus(t('networkError'));
     }
   }
+
 
   /**
    * 更新统计信息

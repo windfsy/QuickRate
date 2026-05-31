@@ -31,6 +31,9 @@ export default {
   // 统计
   converted: '已转换',
 
+  // 隐私政策
+  privacyPolicy: '隐私政策',
+
   // 货币名称
   currencies: {
     USD: '美元',
