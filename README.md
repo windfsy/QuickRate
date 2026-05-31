@@ -11,15 +11,36 @@
 
 </div>
 
+## 📖 项目介绍
+
+QuickRate 是一款轻量级浏览器扩展，能够在你浏览网页时**自动识别货币金额并实时转换**为你选择的目标货币。无论是刷海外购物网站、查看国际新闻、还是阅读外币标价的内容，QuickRate 都能让你**无感地获取熟悉的货币单位**，提升浏览体验。
+
+### 核心能力
+
+- **智能金额识别** — 基于正则表达式引擎，精准识别网页中的各种货币格式（`$100`、`€1,000.50`、`100 USD`、`USD 100` 等），自动排除年份、订单号等非金额数字
+- **实时汇率转换** — 对接 Frankfurter API，获取欧洲中央银行发布的权威汇率数据，每小时自动更新缓存
+- **安全 DOM 替换** — 使用 TreeWalker 遍历文本节点，通过安全的 DOM API 替换内容，不破坏页面结构和事件绑定，不影响页面性能
+- **动态内容支持** — 基于 MutationObserver 监听 DOM 变化，完美适配 React、Vue 等 SPA 框架渲染的动态内容
+- **离线可用** — 内置汇率缓存和默认汇率表，网络不可用时也能完成转换
+- **多语言界面** — 支持简体中文、英文、日文、韩文四种界面语言，自动匹配浏览器语言
+
+### 技术亮点
+
+- 🧩 **Manifest V3** — 基于 Chrome 最新扩展规范，使用 Service Worker 替代传统后台页面
+- 📦 **零依赖** — 纯原生 JavaScript 开发，无第三方运行时依赖，打包体积极小
+- 🔒 **隐私优先** — 所有金额识别和转换均在本地完成，网页内容不会上传到任何服务器
+- ⚡ **性能优化** — 防抖节流、请求去重、智能缓存，确保不影响页面加载速度
+- 🧪 **测试覆盖** — 核心模块（检测器、转换器、工具函数）均有单元测试覆盖
+
 ## ✨ 功能特性
 
-- 🔍 **智能识别** - 自动识别网页中的金额数字，支持多种货币格式
-- 💱 **实时转换** - 使用 Frankfurter API 获取实时汇率
-- 🎯 **精准替换** - 无感替换原金额显示，保持页面布局
-- ⚡ **高性能** - 防抖、节流、缓存优化，不影响页面性能
-- 🎨 **简洁界面** - 现代化弹出窗口，轻松配置
-- 🔄 **动态支持** - MutationObserver 监听动态内容变化
-- 💾 **智能缓存** - 1小时汇率缓存，离线也能用
+- 🔍 **智能识别** — 自动识别网页中的金额数字，支持多种货币格式
+- 💱 **实时转换** — 使用 Frankfurter API 获取实时汇率
+- 🎯 **精准替换** — 无感替换原金额显示，保持页面布局
+- ⚡ **高性能** — 防抖、节流、缓存优化，不影响页面性能
+- 🎨 **简洁界面** — 现代化弹出窗口，轻松配置
+- 🔄 **动态支持** — MutationObserver 监听动态内容变化
+- 💾 **智能缓存** — 1小时汇率缓存，离线也能用
 
 ## 🚀 支持的货币格式
 
@@ -54,7 +75,7 @@
 
 1. 克隆仓库
 ```bash
-git clone https://github.com/yourusername/QuickRate.git
+git clone https://github.com/windfsy/QuickRate.git
 cd QuickRate
 ```
 
@@ -69,7 +90,7 @@ npm run build
 ```
 
 4. 加载扩展
-   - 打开 Chrome，访问 `chrome://extensions/`
+   - 打开 Chrome / Edge，访问 `chrome://extensions/` 或 `edge://extensions/`
    - 启用"开发者模式"
    - 点击"加载已解压的扩展程序"
    - 选择 `dist` 目录
@@ -89,9 +110,10 @@ npm run dev
 
 ### 快捷操作
 
-- **交换货币** - 点击中间的交换按钮
-- **刷新汇率** - 点击右上角的刷新按钮
-- **查看原金额** - 鼠标悬停在转换后的金额上
+- **交换货币** — 点击中间的交换按钮
+- **刷新汇率** — 点击右上角的刷新按钮
+- **查看原金额** — 鼠标悬停在转换后的金额上
+- **隐私政策** — 点击底部「隐私政策」链接查看数据使用说明
 
 ## 🏗️ 项目结构
 
@@ -111,10 +133,12 @@ QuickRate/
 │   │   ├── popup.html
 │   │   ├── popup.css
 │   │   └── popup.js
-│   └── shared/             # 共享模块
-│       ├── constants.js
-│       ├── storage.js
-│       └── utils.js
+│   ├── shared/             # 共享模块
+│   │   ├── constants.js
+│   │   ├── storage.js
+│   │   └── utils.js
+│   ├── locales/            # 国际化
+│   └── privacy.html        # 隐私政策
 ├── tests/                  # 测试文件
 ├── public/                 # 静态资源
 ├── webpack.config.js       # 构建配置
@@ -138,10 +162,10 @@ npm run test:coverage
 
 ### 技术栈
 
-- **Manifest V3** - Chrome 扩展最新规范
-- **原生 JavaScript** - 零依赖，轻量高效
-- **Webpack 5** - 模块打包
-- **Jest** - 单元测试
+- **Manifest V3** — Chrome 扩展最新规范
+- **原生 JavaScript** — 零依赖，轻量高效
+- **Webpack 5** — 模块打包
+- **Jest** — 单元测试
 
 ### 构建命令
 
@@ -179,17 +203,21 @@ npm run lint     # 代码检查
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
+本项目采用 MIT 许可证 — 查看 [LICENSE](LICENSE) 文件了解详情
+
+## 🔒 隐私政策
+
+QuickRate 重视你的隐私。点击扩展弹窗底部的「隐私政策」链接，或查看 [privacy.html](src/privacy.html) 了解详情。
 
 ## 🙏 致谢
 
-- [Frankfurter API](https://www.frankfurter.app/) - 免费汇率 API
-- [Chrome Extensions](https://developer.chrome.com/docs/extensions/) - 官方文档
+- [Frankfurter API](https://www.frankfurter.app/) — 免费汇率 API
+- [Chrome Extensions](https://developer.chrome.com/docs/extensions/) — 官方文档
 
 ## 📞 联系方式
 
-- 项目链接: https://github.com/yourusername/QuickRate
-- 问题反馈: https://github.com/yourusername/QuickRate/issues
+- 项目链接: https://github.com/windfsy/QuickRate
+- 问题反馈: https://github.com/windfsy/QuickRate/issues
 
 ---
 
